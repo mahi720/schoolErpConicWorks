@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* .custom-scrollbar::-webkit-scrollbar { */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 4px;
+}
+/* } */
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* ===== Main Browser Scrollbar ===== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Width */
+
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+/* Track */
+
+body::-webkit-scrollbar-track,
+html::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+/* Thumb */
+
+body::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3d414d, #383e47);
+  border-radius: 20px;
+  border: 2px solid #0f172a;
+}
+
+/* Hover */
+
+body::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+}
+
+/* ===== Hide Scrollbar ===== */
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.input {
+  @apply bg-gray-800 
+ border border-gray-700 
+ rounded-xl p-3 
+ text-white;
+}
+
+.td {
+  @apply p-4 text-gray-300 whitespace-nowrap;
+}
+
+.input {
+  @apply bg-gray-800 border border-gray-700 rounded-xl p-3 text-white outline-none;
+}
+
+/* editor code for employee letter type */
+
+.custom-editor .ql-toolbar {
+  background: #1f2937;
+  border: none !important;
+  color: white;
+}
+
+.custom-editor .ql-container {
+  background: #111827;
+  border: none !important;
+  color: white;
+  min-height: 200px;
+  resize: vertical;
+  overflow: auto;
+}
+
+.custom-editor .ql-editor {
+  min-height: 200px;
+  max-height: 500px;
+  resize: vertical;
+  overflow: auto;
+  color: white;
+}
+
+.custom-editor .ql-editor.ql-blank::before {
+  color: #9ca3af;
+}
+
+.custom-editor .ql-picker {
+  color: white !important;
+}
+
+.custom-editor .ql-stroke {
+  stroke: white !important;
+}
+
+.custom-editor .ql-fill {
+  fill: white !important;
+}
+
+.custom-editor .ql-picker-options {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+.custom-editor .ql-picker-item {
+  color: white !important;
+}
+
+/* for confirmation modal in invantory product detials page */
+
+@keyframes scale {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale {
+  animation: scale 0.2s ease-out;
+}
