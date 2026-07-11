@@ -1,25 +1,19 @@
 import React from "react";
-import { useApp } from "../../context/AppContext";
 
-export default function BoardTabs({ boards }) {
-  const { selectedBoard, setSelectedBoard } = useApp();
-
+export default function BoardTabs({ boards, activeBoard, setActiveBoard }) {
   return (
     <div className="flex gap-2 flex-wrap">
       {boards.map((board) => (
         <button
-          key={board}
-          onClick={() => setSelectedBoard(board)}
-          className={`px-4 py-2 rounded-xl cursor-pointer
-
-${
-  selectedBoard === board
-    ? "bg-blue-600 text-white"
-    : "bg-gray-800 text-gray-300"
-}
-`}
+          key={board.slug}
+          onClick={() => setActiveBoard(board.title)}
+          className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
+            activeBoard === board.title
+              ? "bg-blue-600 text-white"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+          }`}
         >
-          {board}
+          {board.title}
         </button>
       ))}
     </div>

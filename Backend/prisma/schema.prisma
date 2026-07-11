@@ -1,0 +1,491 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// school modal
+
+model School {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolName         String
+  schoolCode         String  @unique @db.VarChar(50)
+  affiliationNumber  String?
+  registrationNumber String?
+
+  contactPersonName String
+  contactNumber     String
+  contactEmail      String
+
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  district     String
+  state        String
+  country      String @default("India")
+  pinCode      String
+
+  logo    String?
+  website String?
+
+  lectureCount      Int?
+  teachingSaturday Boolean @default(false)
+  classrooms       Int?
+
+  plan          SchoolPlan @default(BASIC)
+  planStartDate DateTime?
+  planEndDate   DateTime?
+  maxStudents   Int?
+  maxUsers      Int?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  users               User[]
+  sessions            Session[]
+  boards              Board[]
+  classes             Class[]
+  sections            Section[]
+  streams             Stream[]
+  classMappings       ClassSectionStreamMapping[]
+  subjects            Subject[]
+  addSubjectToClasses AddSubjectToClass[]
+  feeTypes            FeeType[]
+  remarks             Remark[]
+  paymentInfo         PaymentInfo?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("schools")
+}
+
+enum SchoolPlan {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+// login modal
+
+model User {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  name     String
+  email    String
+  password String
+  role     Role   @default(SUPER_ADMIN)
+
+  schoolSlug String? @db.VarChar(50)
+  school     School? @relation(fields: [schoolSlug], references: [slug])
+
+  schoolCode   String?
+  isActive     Boolean  @default(true)
+  refreshToken String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([email, schoolSlug])
+  @@map("users")
+}
+
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  TEACHER
+  STUDENT
+  ACCOUNTANT
+  LIBRARIAN
+  HR
+}
+
+//session modal
+
+model Session {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classMappings       ClassSectionStreamMapping[]
+  addSubjectToClasses AddSubjectToClass[]
+
+  @@unique([schoolSlug, name])
+  @@map("sessions")
+}
+
+//board modal
+
+model Board {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  title       String
+  description String?
+  status      String    @default("active")
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+
+  classMappings       ClassSectionStreamMapping[]
+  addSubjectToClasses AddSubjectToClass[]
+  classes             Class[]
+  sections            Section[]
+  streams             Stream[]
+  subjects            Subject[]
+  feeTypes            FeeType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, title])
+  @@map("boards")
+}
+
+//class modal
+
+model Class {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  classTitle String
+  classType  String
+  status     String    @default("active")
+  isActive   Boolean   @default(true)
+  deletedAt  DateTime?
+
+  classMappings       ClassSectionStreamMapping[]
+  addSubjectToClasses AddSubjectToClass[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, boardSlug, classTitle])
+  @@map("classes")
+}
+
+//section modal
+
+model Section {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  sectionTitle String
+  status       String    @default("active")
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, boardSlug, sectionTitle])
+  @@map("sections")
+}
+
+//stream modal
+
+model Stream {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  streamTitle String
+  status      String    @default("active")
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+
+  classSubjects AddSubjectToClass[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, boardSlug, streamTitle])
+  @@map("streams")
+}
+
+//class section stream mapping modal
+
+model ClassSectionStreamMapping {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  sessionSlug String  @db.VarChar(50)
+  session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+  sectionSlugs      Json
+  streamSlugs       Json?
+  classTeacherSlugs Json?
+
+  startTime      String?
+  endTime        String?
+  periodDuration String?
+  breakTime      String?
+  breakDuration  String?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, sessionSlug, boardSlug, classSlug])
+  @@map("class_section_stream_mappings")
+}
+
+//Subject modal
+
+model Subject {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  subjectTitle String
+  subjectType  String
+  subjectOrder Int
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  classSubjects AddSubjectToClass[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, boardSlug, subjectTitle])
+  @@map("subjects")
+}
+
+//AddSubjectToClass modal
+
+model AddSubjectToClass {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  sessionSlug String  @db.VarChar(50)
+  session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  subjectSlug String  @db.VarChar(50)
+  subject     Subject @relation(fields: [subjectSlug], references: [slug], onDelete: Cascade)
+
+  studyType StudyType
+
+  subjectTopics SubjectTopic[]
+  marksConfigs  SubjectMarksConfig[]
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, boardSlug, sessionSlug, classSlug, streamSlug, subjectSlug])
+  @@map("add_subject_to_classes")
+}
+
+enum StudyType {
+  THEORY
+  PRACTICAL
+  BOTH
+}
+
+// Subject Topic modal
+
+model SubjectTopic {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  addedSubjectToClassSlug String            @db.VarChar(50)
+  addedSubjectToClass     AddSubjectToClass @relation(fields: [addedSubjectToClassSlug], references: [slug], onDelete: Cascade)
+
+  topicTitle String
+  topicGroup String
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([addedSubjectToClassSlug, topicTitle, topicGroup])
+  @@index([addedSubjectToClassSlug])
+  @@index([status])
+  @@map("subject_topics")
+}
+
+// Subject Marks Configuration modal
+
+model SubjectMarksConfig {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  addedSubjectToClassSlug String            @db.VarChar(50)
+  addedSubjectToClass     AddSubjectToClass @relation(fields: [addedSubjectToClassSlug], references: [slug], onDelete: Cascade)
+
+  componentName String
+  totalMarks    Int
+  passingMarks  Int?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([addedSubjectToClassSlug, componentName])
+  @@index([addedSubjectToClassSlug])
+  @@map("subject_marks_configs")
+}
+
+// Fee Type Modal
+
+model FeeType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  feeType     String
+  description String?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, feeType, boardSlug])
+  @@index([schoolSlug, boardSlug])
+  @@index([status])
+  @@map("feeTypes")
+}
+
+// Remarks
+
+model Remark {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  remarksTitle String
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, remarksTitle])
+  @@index([status])
+  @@map("remarks")
+}
+
+// Payment Info modal
+
+model PaymentInfo {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  primaryClientId   String?
+  primaryMerchantId String?
+  primarySecretKey  String? @db.Text
+
+  otherClientId   String?
+  otherMerchantId String?
+  otherSecretKey  String? @db.Text
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug])
+  @@index([status])
+  @@map("payment_infos")
+}

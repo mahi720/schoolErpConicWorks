@@ -2,12 +2,29 @@ import React, { useState } from "react";
 import { Menu, Moon, Sun, Bell, User, LogOut, Search } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { useApp } from "../../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { logoutApi } from "../../api/auth/authApi";
+import { useAuthStore } from "../../store/auth/authStore";
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
   const { toggleSidebar, notifications } = useApp();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const navigate = useNavigate();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+      clearAuth();
+      toast.success("Logout successful");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Logout failed");
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
@@ -115,7 +132,10 @@ export default function Navbar() {
                     admin@school.com
                   </p>
                 </div>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-black dark:text-white flex items-center gap-2">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-black dark:text-white flex items-center gap-2"
+                >
                   <LogOut size={16} />
                   Logout
                 </button>
