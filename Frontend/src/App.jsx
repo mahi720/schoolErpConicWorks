@@ -170,30 +170,7 @@ function App() {
                           path="/master/fees/fees-type"
                           element={<FeesType />}
                         />
-                        <Route
-                          path="/master/fees/manage-fees"
-                          element={<ManageFees />}
-                        />
-                        <Route
-                          path="/master/fees/student-fees"
-                          element={<StudentFees />}
-                        />
-                        <Route
-                          path="/master/fees/compulsory-fees"
-                          element={<PayCompulsoryFees />}
-                        />
-                        <Route
-                          path="/master/fees/other-fees"
-                          element={<OtherFees />}
-                        />
-                        <Route
-                          path="/master/fees/pay-other-fees"
-                          element={<PayOtherFees />}
-                        />
-                        <Route
-                          path="/master/fees/fees-transaction-logs"
-                          element={<TransactionLogs />}
-                        />
+
                         {/* Academic Routes */}
                         <Route
                           path="/academic/student-admission-application"

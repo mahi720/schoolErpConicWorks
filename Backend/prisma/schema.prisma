@@ -486,6 +486,5 @@ model PaymentInfo {
   updatedAt DateTime @updatedAt
 
   @@unique([schoolSlug])
-  @@index([status])
   @@map("payment_infos")
 }
