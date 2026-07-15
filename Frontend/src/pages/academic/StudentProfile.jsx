@@ -445,6 +445,16 @@ export default function StudentProfile() {
 
                           <tr className="border-b border-gray-800">
                             <td className="p-2 text-gray-400 text-sm">
+                              Phone :
+                            </td>
+
+                            <td className="p-2 text-white text-sm">
+                              9770855427
+                            </td>
+                          </tr>
+
+                          <tr className="border-b border-gray-800">
+                            <td className="p-2 text-gray-400 text-sm">
                               Mother's Name :
                             </td>
 
@@ -455,11 +465,11 @@ export default function StudentProfile() {
 
                           <tr className="border-b border-gray-800">
                             <td className="p-2 text-gray-400 text-sm">
-                              Phone :
+                              Mother Mobile :
                             </td>
 
                             <td className="p-2 text-white text-sm">
-                              9770855427
+                              7273036287
                             </td>
                           </tr>
 
@@ -471,14 +481,6 @@ export default function StudentProfile() {
                             <td className="p-2 text-white text-sm">
                               demo@gmail.com
                             </td>
-                          </tr>
-
-                          <tr>
-                            <td className="p-2 text-gray-400 text-sm">
-                              Parent From HAL :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">NHAL</td>
                           </tr>
                         </tbody>
                       </table>

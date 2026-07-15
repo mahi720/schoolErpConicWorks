@@ -19,6 +19,7 @@ import feeTypeRoutes from "./routes/master/feeType/feeType.routes.js";
 import remarkRoutes from "./routes/master/remarks/remarks.routes.js";
 import schoolRoutes from "./routes/master/school/school.routes.js";
 import paymentInfoRoutes from "./routes/master/paymentInfo/paymentInfo.routes.js";
+import studentRoutes from "./routes/academic/addNewStudent/student.routes.js";
 
 const app = express()
 
@@ -84,6 +85,7 @@ app.use("/api/fee-types", feeTypeRoutes);
 app.use("/api/remarks", remarkRoutes);
 app.use("/api/schools", schoolRoutes);
 app.use("/api/payment-info", paymentInfoRoutes);
+app.use("/api/students", studentRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");

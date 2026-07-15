@@ -8,6 +8,7 @@ export default function AttendanceManager() {
   const navigate = useNavigate();
   const [lockModal, setLockModal] = useState(false);
   const [selected, setSelected] = useState([]);
+  const [bulkAttendance, setBulkAttendance] = useState("");
 
   const toggleSelect = (id) => {
     setSelected((prev) =>
@@ -18,11 +19,28 @@ export default function AttendanceManager() {
   const toggleSelectAll = () => {
     if (selected.length === students.length) {
       setSelected([]);
+      setBulkAttendance("");
     } else {
       setSelected(students.map((s) => s.id));
     }
   };
-  const students = [
+
+  const handleBulkAttendance = (value) => {
+    setBulkAttendance(value);
+
+    setStudents((prev) =>
+      prev.map((student) =>
+        selected.includes(student.id)
+          ? {
+              ...student,
+              today: value,
+            }
+          : student,
+      ),
+    );
+  };
+
+  const [students, setStudents] = useState([
     {
       id: 1,
       roll: 26,
@@ -34,7 +52,29 @@ export default function AttendanceManager() {
       present: 156,
       avg: "87%",
     },
-  ];
+    {
+      id: 2,
+      roll: 46,
+      adm: "040/21-22",
+      name: "REEMA HAL",
+      stream: "NA",
+      section: "A",
+      total: 179,
+      present: 156,
+      avg: "87%",
+    },
+    {
+      id: 3,
+      roll: 26,
+      adm: "040/21-22",
+      name: "Rekha HAO",
+      stream: "NA",
+      section: "A",
+      total: 179,
+      present: 156,
+      avg: "87%",
+    },
+  ]);
 
   return (
     <div className="space-y-8">
@@ -99,11 +139,20 @@ export default function AttendanceManager() {
             className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white flex-1 cursor-pointer"
           />
 
-          <select className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white flex-1 cursor-pointer">
-            <option>Mark Attendance</option>
-            <option>Present</option>
-            <option>Absent</option>
-            <option>Holiday</option>
+          <select
+            value={bulkAttendance}
+            disabled={selected.length === 0}
+            onChange={(e) => handleBulkAttendance(e.target.value)}
+            className={`bg-gray-800 border border-gray-700 rounded-xl p-3 text-white cursor-pointer ${
+              selected.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            <option value="">Mark Attendance</option>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+            <option value="Half Day">Half Day</option>
+            <option value="Leave">Leave</option>
+            <option value="Holiday">Holiday</option>
           </select>
 
           <select className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white flex-1 cursor-pointer">
@@ -146,7 +195,7 @@ export default function AttendanceManager() {
               </th>
 
               {[
-                "SN",
+                "SN.",
                 "Roll",
                 "Adm No",
                 "Student",
@@ -170,13 +219,13 @@ export default function AttendanceManager() {
                 <th className="p-4">
                   <input
                     type="checkbox"
-                    checked={selected.length === students.length}
-                    onChange={toggleSelectAll}
+                    checked={selected.includes(s.id)}
+                    onChange={() => toggleSelect(s.id)}
                     className="w-4 h-4 cursor-pointer"
                   />
                 </th>
 
-                <td className="p-4 text-white">{i + 1}</td>
+                <td className="p-4 text-white">{i + 1}.</td>
 
                 <td className="p-4 text-white">{s.roll}</td>
 
@@ -189,7 +238,22 @@ export default function AttendanceManager() {
                 <td className="p-4 text-gray-300">{s.section}</td>
 
                 <td className="p-4 text-gray-300">
-                  <select className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white flex-1 cursor-pointer">
+                  <select
+                    value={s.today}
+                    onChange={(e) => {
+                      setStudents((prev) =>
+                        prev.map((student) =>
+                          student.id === s.id
+                            ? {
+                                ...student,
+                                today: e.target.value,
+                              }
+                            : student,
+                        ),
+                      );
+                    }}
+                    className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white cursor-pointer"
+                  >
                     <option>Present</option>
                     <option>Absent</option>
                     <option>Half Day</option>

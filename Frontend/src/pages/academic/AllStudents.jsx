@@ -336,17 +336,10 @@ export default function AllStudents() {
             <option>Other</option>
           </select>
 
-          <select className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white">
-            <option>Select Parent From HAL</option>
-            <option>HAL</option>
-            <option>NHAL</option>
-            <option>TCL</option>
-          </select>
-
-          <button className="w-20 rounded-xl bg-pink-500 hover:bg-pink-600 text-white flex items-center justify-center gap-2 cursor-pointer">
+          {/* <button className="w-20 rounded-xl bg-pink-500 hover:bg-pink-600 text-white flex items-center justify-center gap-2 cursor-pointer">
             <Filter size={18} />
             Go
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -358,25 +351,18 @@ export default function AllStudents() {
             <thead className="bg-gray-800">
               <tr>
                 {[
-                  "SN",
+                  "SN.",
                   "Adm no.",
                   "Adm date",
-                  "Roll No.",
                   "Student Name",
                   "Father Name",
-                  "Mother Name",
                   "DOB",
                   "Board",
                   "Class",
                   "Section",
-                  "Apaar Id",
-                  "PEN No",
-                  "Aadhar No",
                   "Category",
                   "Gender",
-                  "Blood Group",
                   "Phone",
-                  "Address",
                   "Actions",
                 ].map((head) => (
                   <th
@@ -403,18 +389,12 @@ export default function AllStudents() {
                     {student.admDate}
                   </td>
 
-                  <td className="p-4 text-white">{student.rollNo}</td>
-
                   <td className="p-4 text-white whitespace-nowrap">
                     {student.studentName}
                   </td>
 
                   <td className="p-4 text-gray-300 whitespace-nowrap">
                     {student.fatherName}
-                  </td>
-
-                  <td className="p-4 text-gray-300 whitespace-nowrap">
-                    {student.motherName}
                   </td>
 
                   <td className="p-4 text-gray-300 whitespace-nowrap">
@@ -427,30 +407,12 @@ export default function AllStudents() {
 
                   <td className="p-4 text-white">{student.section}</td>
 
-                  <td className="p-4 text-gray-300 whitespace-nowrap">
-                    {student.apaarId}
-                  </td>
-
-                  <td className="p-4 text-gray-300 whitespace-nowrap">
-                    {student.penNo}
-                  </td>
-
-                  <td className="p-4 text-gray-300 whitespace-nowrap">
-                    {student.aadharNo}
-                  </td>
-
                   <td className="p-4 text-white">{student.category}</td>
 
                   <td className="p-4 text-white">{student.gender}</td>
 
-                  <td className="p-4 text-white">{student.bloodGroup}</td>
-
                   <td className="p-4 text-gray-300 whitespace-nowrap">
                     {student.phone}
-                  </td>
-
-                  <td className="p-4 text-gray-300 min-w-[250px]">
-                    {student.address}
                   </td>
 
                   {/* Actions */}

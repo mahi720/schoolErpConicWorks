@@ -169,7 +169,7 @@ export default function AddStudentModal({ isOpen, onClose }) {
             {/* Academic Year */}
             <div>
               <label className="block text-gray-300 mb-2">
-                Academic Year <span className="text-red-400"> *</span>
+                Admission Academic Year <span className="text-red-400"> *</span>
               </label>
 
               <select
@@ -178,7 +178,24 @@ export default function AddStudentModal({ isOpen, onClose }) {
                 onChange={handleChange}
                 className="w-full bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white"
               >
-                <option value="">--Academic Year--</option>
+                <option value="">Select Admission Academic Year</option>
+                <option>2025-26</option>
+                <option>2026-27</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-gray-300 mb-2">
+                Current Academic Year <span className="text-red-400"> *</span>
+              </label>
+
+              <select
+                name="academicYear"
+                value={formData.academicYear}
+                onChange={handleChange}
+                className="w-full bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white"
+              >
+                <option value="">Select Current Academic Year</option>
                 <option>2025-26</option>
                 <option>2026-27</option>
               </select>
@@ -235,9 +252,7 @@ export default function AddStudentModal({ isOpen, onClose }) {
             </div>
 
             <div>
-              <label className="block text-gray-300 mb-2">
-                Aadhar Card Number
-              </label>
+              <label className="block text-gray-300 mb-2">Aadhar Number</label>
 
               <input
                 type="number"
@@ -524,7 +539,7 @@ export default function AddStudentModal({ isOpen, onClose }) {
               />
             </div>
 
-            <div>
+            {/* <div>
               <label className="block text-gray-300 mb-2">Roll No </label>
               <input
                 type="text"
@@ -534,7 +549,7 @@ export default function AddStudentModal({ isOpen, onClose }) {
                 placeholder="Roll No"
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white"
               />
-            </div>
+            </div> */}
 
             <div>
               <label className="block text-gray-300 mb-2">Blood Group</label>
@@ -587,9 +602,9 @@ export default function AddStudentModal({ isOpen, onClose }) {
                 name="previousBoard"
                 value={formData.previousBoard}
                 onChange={handleChange}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white"
+                className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white"
               >
-                <option>Previous Board</option>
+                <option>Select Previous Board</option>
                 <option>CBSE</option>
                 <option>State Board</option>
                 <option>ICSE</option>
@@ -600,9 +615,9 @@ export default function AddStudentModal({ isOpen, onClose }) {
                 name="previousResult"
                 value={formData.previousResult}
                 onChange={handleChange}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-3 text-white"
+                className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white"
               >
-                <option>--Previous Result--</option>
+                <option>Select Previous Result</option>
                 <option>Pass</option>
                 <option>Fail</option>
               </select>

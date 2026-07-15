@@ -1,11 +1,18 @@
 import React, { useState } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Pencil } from "lucide-react";
 import AssignStreamModal from "../../components/academics/stream&SectionManager/AssignStreamModal";
 import AssignSectionModal from "../../components/academics/stream&SectionManager/AssignSectionModal";
+import AssignRollNumberModal from "../../components/academics/rollNumberManagar/GenerateRollNumbersModal";
+import EditRollNumberModal from "../../components/academics/rollNumberManagar/EditRollNumberModal";
 
 export default function StreamSectionManager() {
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [showStreamModal, setShowStreamModal] = useState(false);
+  const [showRollNumberManager, setShowRollNumberManager] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [editingRollId, setEditingRollId] = useState(null);
+  const [editingRollValue, setEditingRollValue] = useState("");
 
   const [students, setStudents] = useState([
     {
@@ -61,6 +68,19 @@ export default function StreamSectionManager() {
     );
   };
 
+  const handleRollNumberUpdate = (id, newRollNumber) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === id
+          ? {
+              ...student,
+              rollNo: newRollNumber,
+            }
+          : student,
+      ),
+    );
+  };
+
   const handleSelectAll = () => {
     const allSelected = students.every((item) => item.selected);
 
@@ -70,6 +90,34 @@ export default function StreamSectionManager() {
         selected: !allSelected,
       })),
     );
+  };
+
+  const startEditingRoll = (student) => {
+    setEditingRollId(student.id);
+    setEditingRollValue(student.rollNo);
+  };
+
+  const saveEditingRoll = () => {
+    if (editingRollId === null) return;
+
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === editingRollId
+          ? {
+              ...student,
+              rollNo: Number(editingRollValue),
+            }
+          : student,
+      ),
+    );
+
+    setEditingRollId(null);
+    setEditingRollValue("");
+  };
+
+  const cancelEditingRoll = () => {
+    setEditingRollId(null);
+    setEditingRollValue("");
   };
 
   return (
@@ -101,6 +149,13 @@ export default function StreamSectionManager() {
             <option>III</option>
           </select>
 
+          {/* <select className="w-40 bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white">
+            <option>Select Section</option>
+            <option>A</option>
+            <option>B</option>
+            <option>C</option>
+          </select> */}
+
           <button
             disabled={!hasSelectedStudents}
             onClick={() => hasSelectedStudents && setShowStreamModal(true)}
@@ -125,6 +180,21 @@ export default function StreamSectionManager() {
                 }`}
           >
             Assign Section
+          </button>
+
+          <button
+            disabled={!hasSelectedStudents}
+            onClick={() =>
+              hasSelectedStudents && setShowRollNumberManager(true)
+            }
+            className={`px-6 py-3 rounded-xl text-white transition-all
+            ${
+              hasSelectedStudents
+                ? "bg-cyan-600 cursor-pointer hover:bg-cyan-700"
+                : "bg-gray-700 opacity-50 cursor-not-allowed pointer-events-none"
+            }`}
+          >
+            Assign Roll Number
           </button>
 
           <button className="flex items-center gap-2 px-5 py-3 bg-emerald-500 rounded-xl text-white cursor-pointer">
@@ -173,6 +243,8 @@ export default function StreamSectionManager() {
                     </select>
                   </div>
                 </th>
+
+                <th className="p-4 text-left text-gray-300">Actions</th>
               </tr>
             </thead>
 
@@ -193,8 +265,31 @@ export default function StreamSectionManager() {
 
                   <td className="p-4 text-white">{index + 1}.</td>
 
-                  <td className="p-4 text-indigo-400 font-medium">
-                    {student.rollNo}
+                  <td
+                    className="p-4 text-indigo-400 font-medium cursor-pointer"
+                    onDoubleClick={() => startEditingRoll(student)}
+                  >
+                    {editingRollId === student.id ? (
+                      <input
+                        autoFocus
+                        type="number"
+                        value={editingRollValue}
+                        onChange={(e) => setEditingRollValue(e.target.value)}
+                        onBlur={saveEditingRoll}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            saveEditingRoll();
+                          }
+
+                          if (e.key === "Escape") {
+                            cancelEditingRoll();
+                          }
+                        }}
+                        className="w-20 bg-gray-800 border border-indigo-500 rounded px-2 py-1 text-white outline-none"
+                      />
+                    ) : (
+                      student.rollNo
+                    )}
                   </td>
 
                   <td className="p-4 text-white font-medium">{student.name}</td>
@@ -205,6 +300,21 @@ export default function StreamSectionManager() {
 
                   <td className="p-4 text-pink-400 font-medium">
                     {student.section}
+                  </td>
+
+                  <td className="p-4">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          setShowEditModal(true);
+                        }}
+                        className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                        title="Edit Roll Number"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -220,6 +330,18 @@ export default function StreamSectionManager() {
       <AssignSectionModal
         isOpen={showSectionModal}
         onClose={() => setShowSectionModal(false)}
+      />
+
+      <AssignRollNumberModal
+        isOpen={showRollNumberManager}
+        onClose={() => setShowRollNumberManager(false)}
+      />
+
+      <EditRollNumberModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        student={selectedStudent}
+        onSave={handleRollNumberUpdate}
       />
     </div>
   );

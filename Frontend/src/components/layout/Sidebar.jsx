@@ -83,7 +83,7 @@ const menuItems = [
         label: "Stream & Section Manager",
         href: "/academic/stream-section-manager",
       },
-      { label: "Roll Number Manager", href: "/academic/roll-number-manager" },
+      // { label: "Roll Number Manager", href: "/academic/roll-number-manager" },
       { label: "ID Cards", href: "/academic/id-cards" },
       { label: "Attendance", href: "/academic/attendance" },
       { label: "Academic Calendar", href: "/academic/academic-calendar" },
