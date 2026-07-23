@@ -181,7 +181,7 @@ function App() {
                           element={<AllStudents />}
                         />
                         <Route
-                          path="/academic/student-profile/:id"
+                          path="/academic/student-profile/:slug"
                           element={<StudentProfile />}
                         />
                         <Route

@@ -11,8 +11,27 @@ export default function DailyAttendanceReport() {
     {
       className: "Class 1",
       section: "A",
+      stream: "Arts",
       enrolled: 2,
       present: 0,
+      absent: 0,
+      holiday: 0,
+    },
+    {
+      className: "Class 2",
+      section: "B",
+      stream: "Science",
+      enrolled: 2,
+      present: 0,
+      absent: 3,
+      holiday: 1,
+    },
+    {
+      className: "Class 1",
+      section: "C",
+      stream: "Commerce",
+      enrolled: 2,
+      present: 5,
       absent: 0,
       holiday: 0,
     },
@@ -134,18 +153,13 @@ export default function DailyAttendanceReport() {
               {[
                 "Class",
                 "Section",
+                "stream",
                 "Enrolled",
                 "Present",
                 "Absent",
                 "Holiday",
               ].map((h) => (
-                <th
-                  key={h}
-                  className="
-      border border-gray-700
-      p-3
-      "
-                >
+                <th key={h} className="border border-gray-700 p-3">
                   {h}
                 </th>
               ))}
@@ -158,6 +172,8 @@ export default function DailyAttendanceReport() {
                 <td className="border border-gray-700 p-3">{item.className}</td>
 
                 <td className="border border-gray-700 p-3">{item.section}</td>
+
+                <td className="border border-gray-700 p-3">{item.stream}</td>
 
                 <td className="border border-gray-700 p-3">{item.enrolled}</td>
 
@@ -172,17 +188,17 @@ export default function DailyAttendanceReport() {
             {/* total */}
 
             <tr className="font-bold">
-              <td colSpan="2" className="border border-gray-700 p-3">
+              <td colSpan="3" className="border border-gray-700 p-3">
                 Total
               </td>
 
-              <td className="border border-gray-700 p-3">2</td>
+              <td className="border border-gray-700 p-3">6</td>
 
-              <td className="border border-gray-700 p-3">0</td>
+              <td className="border border-gray-700 p-3">5</td>
 
-              <td className="border border-gray-700 p-3">0</td>
+              <td className="border border-gray-700 p-3">3</td>
 
-              <td className="border border-gray-700 p-3">0</td>
+              <td className="border border-gray-700 p-3">1</td>
             </tr>
           </tbody>
         </table>

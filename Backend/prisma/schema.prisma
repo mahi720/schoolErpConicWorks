@@ -70,13 +70,15 @@ model School {
   studentVaccinations      StudentVaccination[]
   studentDocuments         StudentDocument[]
   studentAcademicMappings  StudentAcademicRollSectionStreamMapping[]
-  studentAttendances       StudentAttendance[]
   studentPromotions        StudentPromotion[]
   studentHealthAssessments StudentHealthAssessment[]
   studentOtherInformations StudentOtherInformation[]
   academicCalendars        AcademicCalendar[]
   weeklyPlans              WeeklyPlan[]
   weeklyPlanLessons        WeeklyPlanLesson[]
+  studentAttendances       StudentAttendance[]
+  studentAttendanceDays    StudentAttendanceDay[]
+  studentAttendanceLogs    StudentAttendanceLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,7 +109,14 @@ model User {
 
   schoolCode String?
 
-  studentPromotionsApproved StudentPromotion[] @relation("StudentPromotionApprovedBy")
+  weeklyPlans WeeklyPlan[]
+
+  studentPromotionsApproved StudentPromotion[]     @relation("StudentPromotionApprovedBy")
+  markedAttendanceDays      StudentAttendanceDay[] @relation("AttendanceDayMarkedBy")
+  lockedAttendanceDays      StudentAttendanceDay[] @relation("AttendanceDayLockedBy")
+  unlockedAttendanceDays    StudentAttendanceDay[] @relation("AttendanceDayUnlockedBy")
+
+  performedAttendanceLogs StudentAttendanceLog[] @relation("AttendanceLogPerformedBy")
 
   isActive     Boolean  @default(true)
   refreshToken String?  @db.Text
@@ -154,12 +163,14 @@ model Session {
   currentStudents   Student[] @relation("CurrentSession")
 
   studentAcademicMappings StudentAcademicRollSectionStreamMapping[]
-  studentAttendances      StudentAttendance[]
 
   studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionSession")
   studentPromotionsNew      StudentPromotion[] @relation("NewPromotionSession")
 
   studentHealthAssessments StudentHealthAssessment[]
+  studentAttendances       StudentAttendance[]
+  studentAttendanceDays    StudentAttendanceDay[]
+  studentAttendanceLogs    StudentAttendanceLog[]
 
   academicCalendars AcademicCalendar[]
 
@@ -196,6 +207,9 @@ model Board {
   studentAcademicMappings StudentAcademicRollSectionStreamMapping[]
   studentAttendances      StudentAttendance[]
 
+  studentAttendanceDays StudentAttendanceDay[]
+  studentAttendanceLogs StudentAttendanceLog[]
+
   studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionBoard")
   studentPromotionsNew      StudentPromotion[] @relation("NewPromotionBoard")
 
@@ -230,10 +244,13 @@ model Class {
   currentStudents     Student[]                   @relation("CurrentClass")
 
   studentAcademicMappings StudentAcademicRollSectionStreamMapping[]
-  studentAttendances      StudentAttendance[]
 
-  studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionClass")
-  studentPromotionsNew      StudentPromotion[] @relation("NewPromotionClass")
+  studentPromotionsPrevious StudentPromotion[]     @relation("PreviousPromotionClass")
+  studentPromotionsNew      StudentPromotion[]     @relation("NewPromotionClass")
+  weeklyPlans               WeeklyPlan[]
+  studentAttendances        StudentAttendance[]
+  studentAttendanceDays     StudentAttendanceDay[]
+  studentAttendanceLogs     StudentAttendanceLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -258,7 +275,9 @@ model Section {
 
   studentAcademicMappings StudentAcademicRollSectionStreamMapping[]
 
-  studentAttendances StudentAttendance[]
+  studentAttendances    StudentAttendance[]
+  studentAttendanceDays StudentAttendanceDay[]
+  studentAttendanceLogs StudentAttendanceLog[]
 
   studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionSection")
   studentPromotionsNew      StudentPromotion[] @relation("NewPromotionSection")
@@ -292,8 +311,6 @@ model Stream {
 
   studentAcademicMappings StudentAcademicRollSectionStreamMapping[]
 
-  studentAttendances StudentAttendance[]
-
   studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionStream")
   studentPromotionsNew      StudentPromotion[] @relation("NewPromotionStream")
 
@@ -301,7 +318,10 @@ model Stream {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  classSubjects AddSubjectToClass[]
+  classSubjects         AddSubjectToClass[]
+  studentAttendances    StudentAttendance[]
+  studentAttendanceDays StudentAttendanceDay[]
+  studentAttendanceLogs StudentAttendanceLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -623,13 +643,14 @@ model Student {
 
   documents StudentDocument[]
 
-  attendance StudentAttendance[]
-
   academicMapping StudentAcademicRollSectionStreamMapping[]
 
   promotions StudentPromotion[]
 
-  healthAssessments StudentHealthAssessment[]
+  healthAssessments     StudentHealthAssessment[]
+  studentAttendances    StudentAttendance[]
+  studentAttendanceDays StudentAttendanceDay[]
+  studentAttendanceLogs StudentAttendanceLog[]
 
   otherInformation StudentOtherInformation?
 
@@ -801,7 +822,12 @@ model StudentAcademicRollSectionStreamMapping {
   streamSlug String? @db.VarChar(50)
   stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
 
-  rollNumber Int?
+  rollNumberPrefix String?
+  rollNumber       Int?
+
+  studentAttendances    StudentAttendance[]
+  studentAttendanceDays StudentAttendanceDay[]
+  studentAttendanceLogs StudentAttendanceLog[]
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -810,13 +836,16 @@ model StudentAcademicRollSectionStreamMapping {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([sessionSlug, classSlug, sectionSlug, rollNumber])
+  @@unique([schoolSlug, boardSlug, sessionSlug, classSlug, sectionSlug, rollNumber])
+  @@unique([studentSlug, sessionSlug])
   @@index([schoolSlug])
   @@index([sessionSlug])
   @@index([classSlug])
   @@index([sectionSlug])
   @@index([streamSlug])
   @@index([rollNumber])
+  @@index([boardSlug])
+  @@index([studentSlug])
   @@map("student_academic_roll_section_stream_mappings")
 }
 
@@ -847,13 +876,17 @@ model StudentAttendance {
   streamSlug String? @db.VarChar(50)
   stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
 
+  academicMappingSlug String?                                  @db.VarChar(50)
+  academicMapping     StudentAcademicRollSectionStreamMapping? @relation(fields: [academicMappingSlug], references: [slug], onDelete: SetNull)
+
   year  Int
   month Int
 
   /// Example:
   /// {
-  ///   "01":"P",
-  ///   "02":"P",
+  ///   "01": "P",
+  ///   "02": "A",
+  ///   "03": "L"
   /// }
   attendance Json
 
@@ -864,11 +897,10 @@ model StudentAttendance {
   totalHalfDay     Int @default(0)
   totalHoliday     Int @default(0)
 
-  attendancePercentage Decimal? @db.Decimal(5, 2)
+  attendancePercentage Decimal @default(0) @db.Decimal(5, 2)
 
-  isLocked Boolean   @default(false)
-  lockedAt DateTime?
-  lockedBy String?   @db.VarChar(50)
+  attendanceDays StudentAttendanceDay[]
+  attendanceLogs StudentAttendanceLog[]
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -877,14 +909,158 @@ model StudentAttendance {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([schoolSlug, studentSlug, year, month])
-  @@index([schoolSlug])
-  @@index([sessionSlug])
-  @@index([classSlug])
-  @@index([sectionSlug])
-  @@index([streamSlug])
-  @@index([year, month])
+  @@unique([schoolSlug, studentSlug, sessionSlug, year, month])
+  @@index([schoolSlug, sessionSlug, boardSlug, classSlug, year, month])
+  @@index([schoolSlug, sessionSlug, classSlug, sectionSlug, year, month])
+  @@index([studentSlug, sessionSlug, year, month])
+  @@index([academicMappingSlug])
   @@map("student_attendances")
+}
+
+model StudentAttendanceDay {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  attendanceSlug String            @db.VarChar(50)
+  attendance     StudentAttendance @relation(fields: [attendanceSlug], references: [slug], onDelete: Cascade)
+
+  studentSlug String  @db.VarChar(50)
+  student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
+
+  sessionSlug String  @db.VarChar(50)
+  session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  academicMappingSlug String?                                  @db.VarChar(50)
+  academicMapping     StudentAcademicRollSectionStreamMapping? @relation(fields: [academicMappingSlug], references: [slug], onDelete: SetNull)
+
+  attendanceDate DateTime @db.Date
+
+  year  Int
+  month Int
+  day   Int
+
+  attendanceStatus String @db.VarChar(10)
+
+  markedBySlug String @db.VarChar(50)
+  markedBy     User   @relation("AttendanceDayMarkedBy", fields: [markedBySlug], references: [slug], onDelete: Restrict)
+
+  markedAt DateTime @default(now())
+
+  isLocked Boolean @default(false)
+
+  lockedBySlug String? @db.VarChar(50)
+  lockedBy     User?   @relation("AttendanceDayLockedBy", fields: [lockedBySlug], references: [slug], onDelete: SetNull)
+
+  lockedAt DateTime?
+
+  unlockedBySlug String? @db.VarChar(50)
+  unlockedBy     User?   @relation("AttendanceDayUnlockedBy", fields: [unlockedBySlug], references: [slug], onDelete: SetNull)
+
+  unlockedAt DateTime?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attendanceSlug, attendanceDate])
+  @@index([schoolSlug, attendanceDate])
+  @@index([schoolSlug, sessionSlug, classSlug, sectionSlug, attendanceDate])
+  @@index([studentSlug, attendanceDate])
+  @@index([academicMappingSlug])
+  @@map("student_attendance_days")
+}
+
+model StudentAttendanceLog {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  attendanceSlug String            @db.VarChar(50)
+  attendance     StudentAttendance @relation(fields: [attendanceSlug], references: [slug], onDelete: Cascade)
+
+  studentSlug String  @db.VarChar(50)
+  student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
+
+  sessionSlug String  @db.VarChar(50)
+  session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  academicMappingSlug String?                                  @db.VarChar(50)
+  academicMapping     StudentAcademicRollSectionStreamMapping? @relation(fields: [academicMappingSlug], references: [slug], onDelete: SetNull)
+
+  attendanceDate DateTime @db.Date
+
+  year  Int
+  month Int
+  day   Int
+
+  action AttendanceLogAction
+
+  previousStatus String? @db.VarChar(10)
+  currentStatus  String? @db.VarChar(10)
+
+  previousData Json?
+  currentData  Json?
+
+  performedBySlug String @db.VarChar(50)
+  performedBy     User   @relation("AttendanceLogPerformedBy", fields: [performedBySlug], references: [slug], onDelete: Restrict)
+
+  performedAt DateTime @default(now())
+
+  remarks   String? @db.VarChar(255)
+  ipAddress String? @db.VarChar(100)
+  userAgent String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([attendanceSlug, attendanceDate])
+  @@index([schoolSlug, attendanceDate])
+  @@index([academicMappingSlug])
+  @@index([schoolSlug, sessionSlug, classSlug, sectionSlug, attendanceDate])
+  @@index([studentSlug, attendanceDate])
+  @@index([performedBySlug, performedAt])
+  @@index([action])
+  @@map("student_attendance_logs")
+}
+
+enum AttendanceLogAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOCK
+  UNLOCK
 }
 
 // student Academic Calendar
@@ -908,8 +1084,7 @@ model AcademicCalendar {
   endDate   DateTime
 
   isHoliday Boolean @default(false)
-
-  color String?
+  color     String?
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -1185,6 +1360,12 @@ model WeeklyPlan {
   sectionSlug String  @db.VarChar(50)
   section     Section @relation(fields: [sectionSlug], references: [slug], onDelete: Cascade)
 
+  userSlug String @db.VarChar(50)
+  user     User   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
   teacherSlug String? @db.VarChar(50)
 
   fromDate DateTime
@@ -1232,7 +1413,7 @@ model WeeklyPlanLesson {
   weeklyPlanSlug String     @db.VarChar(50)
   weeklyPlan     WeeklyPlan @relation(fields: [weeklyPlanSlug], references: [slug], onDelete: Cascade)
 
-  lessonOrder Int
+  lessonOrder Int?
 
   day String
 

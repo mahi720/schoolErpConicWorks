@@ -4,22 +4,37 @@ import { errorResponse } from "../../utils/apiResponse.js";
 
 export const authMiddleware = async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(" ")[1];
+        const authHeader = req.headers.authorization;
 
-        if (!token) {
-            return errorResponse(res, 401, "Access token missing");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return errorResponse(
+                res,
+                401,
+                "Access token missing",
+            );
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const token = authHeader.split(" ")[1];
+
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_ACCESS_SECRET,
+        );
 
         const user = await prisma.user.findUnique({
-            where: { id: decoded.id },
+            where: {
+                id: decoded.id,
+            },
+
             select: {
                 id: true,
+
+                // Important: attendance relations ke liye
+                slug: true,
+
                 name: true,
                 email: true,
                 role: true,
-                // schoolId: true,
                 schoolSlug: true,
                 schoolCode: true,
                 isActive: true,
@@ -27,12 +42,53 @@ export const authMiddleware = async (req, res, next) => {
         });
 
         if (!user || !user.isActive) {
-            return errorResponse(res, 401, "Unauthorized user");
+            return errorResponse(
+                res,
+                401,
+                "Unauthorized user",
+            );
+        }
+
+        if (!user.slug) {
+            return errorResponse(
+                res,
+                401,
+                "User slug is missing",
+            );
+        }
+
+        if (!user.schoolSlug && user.role !== "SUPER_ADMIN") {
+            return errorResponse(
+                res,
+                401,
+                "User school information is missing",
+            );
         }
 
         req.user = user;
-        next();
-    } catch {
-        return errorResponse(res, 401, "Invalid or expired token");
+
+        return next();
+    } catch (error) {
+        if (error?.name === "TokenExpiredError") {
+            return errorResponse(
+                res,
+                401,
+                "Access token expired",
+            );
+        }
+
+        if (error?.name === "JsonWebTokenError") {
+            return errorResponse(
+                res,
+                401,
+                "Invalid access token",
+            );
+        }
+
+        return errorResponse(
+            res,
+            401,
+            "Invalid or expired token",
+        );
     }
 };

@@ -6,6 +6,14 @@ import {
     findSessionByNameRepo,
     findBoardByTitleRepo,
     findClassByTitleRepo,
+    getStudentsRepo,
+    getStudentBySlugRepo,
+    updateStudentRepo,
+    deleteStudentRepo,
+    getDeletedStudentRepo,
+    restoreStudentRepo
+
+
 } from "../../../repositories/academic/addNewStudent/student.repository.js";
 
 const generateSlug = () => crypto.randomUUID();
@@ -89,6 +97,12 @@ export const createStudentService = async (body, user) => {
         );
 
     if (existingStudent) {
+        if (!existingStudent.isActive) {
+            throw new Error(
+                "Student with this admission number already exists but is inactive. Please restore it."
+            );
+        }
+
         throw new Error(
             "Admission number already exists"
         );
@@ -326,21 +340,243 @@ export const createStudentService = async (body, user) => {
     return formatStudent(student);
 };
 
-export const getStudentsService = async (user) => {
+export const getStudentsService = async (
+    query,
+    user
+) => {
     const schoolSlug = user?.schoolSlug;
 
     if (!schoolSlug) {
-        throw new Error("School not found for this user");
+        throw new Error(
+            "School not found for this user"
+        );
     }
 
-    const students = await getStudentsRepo(schoolSlug);
+    let boardSlug = null;
+    let currentClassSlug = null;
+    let currentSessionSlug = null;
 
-    return students.map(formatStudent);
+    /*
+     * Board title resolve
+     */
+    if (query.board) {
+        const board =
+            await findBoardByTitleRepo(
+                schoolSlug,
+                query.board.trim()
+            );
+
+        if (!board) {
+            return [];
+        }
+
+        boardSlug = board.slug;
+    }
+
+    /*
+     * Current session name resolve
+     */
+    if (query.currentSession) {
+        const session =
+            await findSessionByNameRepo(
+                schoolSlug,
+                query.currentSession.trim()
+            );
+
+        if (!session) {
+            return [];
+        }
+
+        currentSessionSlug = session.slug;
+    }
+
+    /*
+     * Current class title resolve
+     */
+    if (query.currentClass) {
+        if (!boardSlug) {
+            throw new Error(
+                "Board is required for class filter"
+            );
+        }
+
+        const classData =
+            await findClassByTitleRepo({
+                schoolSlug,
+                boardSlug,
+                classTitle:
+                    query.currentClass.trim(),
+            });
+
+        if (!classData) {
+            return [];
+        }
+
+        currentClassSlug =
+            classData.slug;
+    }
+
+    const students =
+        await getStudentsRepo({
+            schoolSlug,
+            status:
+                query.status || "active",
+
+            boardSlug,
+            currentClassSlug,
+            currentSessionSlug,
+
+            category:
+                query.category || undefined,
+
+            sponsorshipType:
+                query.sponsorshipType ||
+                undefined,
+
+            gender:
+                query.gender || undefined,
+
+            search:
+                query.search || undefined,
+        });
+
+    return students.map((student) => ({
+        slug: student.slug,
+
+        admissionNumber:
+            student.admissionNumber,
+
+        admissionDate:
+            student.admissionDate,
+
+        admissionSession:
+            student.admissionSession?.name ||
+            null,
+
+        currentSession:
+            student.currentSession?.name ||
+            null,
+
+        board:
+            student.board?.title || null,
+
+        admissionClass:
+            student.admissionClass
+                ?.classTitle || null,
+
+        admissionClassType:
+            student.admissionClass
+                ?.classType || null,
+
+        currentClass:
+            student.currentClass
+                ?.classTitle || null,
+
+        currentClassType:
+            student.currentClass
+                ?.classType || null,
+
+        sponsorshipType:
+            student.sponsorshipType,
+
+        sponsorshipRemarks:
+            student.sponsorshipRemarks,
+
+        studentName:
+            student.studentName,
+
+        fatherName:
+            student.fatherName,
+
+        motherName:
+            student.motherName,
+
+        aadhaarNumber:
+            student.aadhaarNumber,
+
+        apaarId:
+            student.apaarId,
+
+        penNumber:
+            student.penNumber,
+
+        sats:
+            student.sats,
+
+        dob:
+            student.dob,
+
+        placeOfBirth:
+            student.placeOfBirth,
+
+        caste:
+            student.caste,
+
+        category:
+            student.category,
+
+        religion:
+            student.religion,
+
+        gender:
+            student.gender,
+
+        phone:
+            student.phone,
+
+        motherPhone:
+            student.motherPhone,
+
+        email:
+            student.email,
+
+        state:
+            student.state,
+
+        district:
+            student.district,
+
+        city:
+            student.city,
+
+        address:
+            student.address,
+
+        motherTongue:
+            student.motherTongue,
+
+        secondLanguage:
+            student.secondLanguage,
+
+        bloodGroup:
+            student.bloodGroup,
+
+        profileImage:
+            student.profileImage,
+
+        previousSchoolInfo:
+            student.previousSchoolInfo,
+
+        status:
+            student.status,
+
+        isActive:
+            student.isActive,
+
+        deletedAt:
+            student.deletedAt,
+
+        createdAt:
+            student.createdAt,
+
+        updatedAt:
+            student.updatedAt,
+    }));
 };
 
 export const getStudentBySlugService = async (
     slug,
-    user
+    user,
 ) => {
     const schoolSlug = user?.schoolSlug;
 

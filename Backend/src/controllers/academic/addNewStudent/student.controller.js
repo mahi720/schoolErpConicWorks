@@ -12,13 +12,19 @@ import {
     errorResponse,
 } from "../../../utils/apiResponse.js";
 
-
 // Create Student
-
 export const createStudent = async (req, res) => {
     try {
+        const body = {
+            ...req.body,
+
+            profileImage: req.file
+                ? `/uploads/studentsProfilePhoto/${req.file.filename}`
+                : null,
+        };
+
         const student = await createStudentService(
-            req.body,
+            body,
             req.user
         );
 
@@ -37,13 +43,11 @@ export const createStudent = async (req, res) => {
     }
 };
 
-
 // Get All Students
-
-
 export const getStudents = async (req, res) => {
     try {
         const students = await getStudentsService(
+            req.query,
             req.user
         );
 
@@ -62,10 +66,7 @@ export const getStudents = async (req, res) => {
     }
 };
 
-
 // Get Student By Slug
-
-
 export const getStudentBySlug = async (
     req,
     res
@@ -92,19 +93,25 @@ export const getStudentBySlug = async (
     }
 };
 
-
 // Update Student
-
-
 export const updateStudent = async (
     req,
     res
 ) => {
     try {
+        const body = {
+            ...req.body,
+        };
+
+        if (req.file) {
+            body.profileImage =
+                `/uploads/studentsProfilePhoto/${req.file.filename}`;
+        }
+
         const student =
             await updateStudentService(
                 req.params.slug,
-                req.body,
+                body,
                 req.user
             );
 
@@ -123,24 +130,23 @@ export const updateStudent = async (
     }
 };
 
-
 // Delete Student
-
-
 export const deleteStudent = async (
     req,
     res
 ) => {
     try {
-        await deleteStudentService(
-            req.params.slug,
-            req.user
-        );
+        const student =
+            await deleteStudentService(
+                req.params.slug,
+                req.user
+            );
 
         return successResponse(
             res,
             200,
-            "Student deleted successfully"
+            "Student deleted successfully",
+            student
         );
     } catch (error) {
         return errorResponse(
@@ -151,10 +157,7 @@ export const deleteStudent = async (
     }
 };
 
-
 // Restore Student
-
-
 export const restoreStudent = async (
     req,
     res

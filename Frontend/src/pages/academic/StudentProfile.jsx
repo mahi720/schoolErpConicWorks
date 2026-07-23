@@ -1,6 +1,14 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronDown, ChevronUp, Download, Pencil } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useStudentStore } from "../../store/academic/addNewStudent/studentStore";
+import { Link, useParams } from "react-router-dom";
+import {
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Pencil,
+  Loader2,
+  Camera,
+} from "lucide-react";
 import PersonalInfoModal from "../../components/academics/addNewStudent/Modal/PersonalInfoModal";
 import ParentInfoModal from "../../components/academics/addNewStudent/Modal/ParentInfoModal";
 import AdmissionInfoModal from "../../components/academics/addNewStudent/Modal/AdmissionInfoModal";
@@ -8,22 +16,105 @@ import DocumentUploadModal from "../../components/academics/addNewStudent/Modal/
 import FeeConcessionModal from "../../components/academics/addNewStudent/Modal/FeeConcessionModal";
 
 export default function StudentProfile() {
-  const [openSection, setOpenSection] = useState("");
+  const { slug } = useParams();
+
   const [showPersonalInfo, setShowPersonalInfo] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [openSection, setOpenSection] = useState("");
   const [showPersonalModal, setShowPersonalModal] = useState(false);
   const [showParentModal, setShowParentModal] = useState(false);
   const [showAdmissionModal, setShowAdmissionModal] = useState(false);
-  const [modalType, setModalType] = useState("");
+  const [showHealthModal, setShowHealthModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [activeTab, setActiveTab] = useState("Account");
   const [openExam, setOpenExam] = useState(null);
   const [showConcessionModal, setShowConcessionModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
-  const student = {
-    admissionNo: "1118",
-    rollNo: "NA",
-    name: "PRATYUSHA TANDI",
-    photo: "https://i.pravatar.cc/200",
+  const { selectedStudent, loading, fetchStudentBySlug, updateStudent } =
+    useStudentStore();
+
+  useEffect(() => {
+    if (!slug) return;
+
+    fetchStudentBySlug(slug);
+  }, [slug, fetchStudentBySlug]);
+
+  const student = selectedStudent;
+
+  const getStudentImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+
+    if (
+      imagePath.startsWith("http://") ||
+      imagePath.startsWith("https://") ||
+      imagePath.startsWith("blob:")
+    ) {
+      return imagePath;
+    }
+
+    const serverUrl =
+      import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+
+    return `${serverUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "N/A";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString("en-GB");
+  };
+
+  const getValue = (value) => {
+    if (
+      value === null ||
+      value === undefined ||
+      String(value).trim() === "" ||
+      String(value).toLowerCase() === "na"
+    ) {
+      return "N/A";
+    }
+
+    return value;
+  };
+
+  useEffect(() => {
+    if (student?.profileImage) {
+      setImagePreview(getStudentImageUrl(student.profileImage));
+    }
+  }, [student]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setSelectedImage(file);
+
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleProfileImageUpdate = async () => {
+    if (!selectedImage) return;
+
+    const formData = new FormData();
+
+    formData.append("profileImage", selectedImage);
+
+    const success = await updateStudent(student.slug, formData);
+
+    if (success) {
+      setSelectedImage(null);
+
+      fetchStudentBySlug(student.slug);
+    }
   };
 
   const [documents, setDocuments] = useState([
@@ -287,6 +378,187 @@ export default function StudentProfile() {
     },
   ];
 
+  const personalInfo = useMemo(
+    () => [
+      {
+        label: "Aadhar Number",
+        value: student?.aadhaarNumber,
+      },
+      {
+        label: "Date of Birth",
+        value: formatDate(student?.dob),
+      },
+      {
+        label: "Place of Birth",
+        value: student?.placeOfBirth,
+      },
+      {
+        label: "Caste",
+        value: student?.caste,
+      },
+      {
+        label: "Category",
+        value: student?.category,
+      },
+      {
+        label: "Religion",
+        value: student?.religion,
+      },
+      {
+        label: "Gender",
+        value: student?.gender,
+      },
+      {
+        label: "State",
+        value: student?.state,
+      },
+      {
+        label: "District",
+        value: student?.district,
+      },
+      {
+        label: "City",
+        value: student?.city,
+      },
+      {
+        label: "Address",
+        value: student?.address,
+      },
+      {
+        label: "SATS",
+        value: student?.sats,
+      },
+      {
+        label: "Board Reg. No.",
+        value: student?.boardRegistrationNumber,
+      },
+      {
+        label: "PEN No.",
+        value: student?.penNumber,
+      },
+      {
+        label: "Mother Tongue",
+        value: student?.motherTongue,
+      },
+      {
+        label: "Second Language",
+        value: student?.secondLanguage,
+      },
+      {
+        label: "BPL",
+        value: student?.bpl,
+      },
+    ],
+    [student],
+  );
+
+  const parentInfo = [
+    {
+      label: "Father's Name",
+      value: student?.fatherName,
+    },
+    {
+      label: "Phone",
+      value: student?.phone,
+    },
+    {
+      label: "Mother's Name",
+      value: student?.motherName,
+    },
+    {
+      label: "Mother Mobile",
+      value: student?.motherPhone,
+    },
+    {
+      label: "Email",
+      value: student?.email,
+    },
+  ];
+
+  const admissionInfo = useMemo(
+    () => [
+      {
+        label: "Admission No",
+        value: student?.admissionNumber,
+      },
+      {
+        label: "Admission Date",
+        value: student?.admissionDate
+          ? formatDate(student.admissionDate)
+          : "N/A",
+      },
+      {
+        label: "Admission Academic Year",
+        value: student?.admissionSession,
+      },
+      {
+        label: "Current Academic Year",
+        value: student?.currentSession,
+      },
+      {
+        label: "Board",
+        value: student?.board,
+      },
+      {
+        label: "Admission Class",
+        value: student?.admissionClass,
+      },
+      {
+        label: "Current Class",
+        value: student?.currentClass,
+      },
+      {
+        label: "Sponsorship Type",
+        value: student?.sponsorshipType,
+      },
+      {
+        label: "Sponsorship Remarks",
+        value: student?.sponsorshipRemarks,
+      },
+
+      // Previous School Informations If Any
+
+      {
+        label: "Previous School",
+        value: student?.previousSchoolInfo?.previousSchool,
+      },
+      {
+        label: "Previous Board",
+        value: student?.previousSchoolInfo?.previousBoard,
+      },
+      {
+        label: "Previous Result",
+        value: student?.previousSchoolInfo?.previousResult,
+      },
+      {
+        label: "Previous School Adrs.",
+        value: student?.previousSchoolInfo?.schoolAddress,
+      },
+    ],
+    [student],
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-gray-400">
+        <Loader2 size={24} className="animate-spin mr-2" />
+        Loading student profile...
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <p className="text-gray-400">Student not found</p>
+
+        <Link to="/academic/all-students" className="text-blue-400">
+          Back to All Students
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -303,29 +575,53 @@ export default function StudentProfile() {
         <div className="col-span-4">
           <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
             <div className="flex gap-4">
-              <img
-                src={student.photo}
-                alt=""
-                className="w-20 h-20 rounded-full"
-              />
+              <div className="relative w-20 h-20">
+                <img
+                  src={imagePreview || "/default-avatar.png"}
+                  alt={student.studentName}
+                  className="w-20 h-20 rounded-full object-cover border border-gray-700"
+                />
+
+                <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center cursor-pointer border-2 border-gray-900">
+                  <Camera size={15} color="white" />
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </label>
+              </div>
 
               <div>
-                <span className="bg-indigo-600 px-1 py-1 rounded text-xs font-normal text-white">
-                  Admission Number :{student.admissionNo}
+                <span className="bg-indigo-600 px-2 py-1 rounded text-xs text-white">
+                  Admission Number: {getValue(student.admissionNumber)}
                 </span>
 
-                <h1 className="text-xl text-white mt-2">{student.name}</h1>
+                <h1 className="text-xl text-white mt-2">
+                  {getValue(student.studentName)}
+                </h1>
 
                 <div className="flex items-center gap-2">
-                  <span className="mt-2 border gap-2 border-red-500 text-red-400 rounded-md inline-block px-2 py-1 text-sm font-normal">
-                    IV
+                  <span className="mt-2 border border-red-500 text-red-400 rounded-md inline-block px-2 py-1 text-sm">
+                    {getValue(student.currentClass)}
                   </span>
-                  <div className="mt-2 border border-indigo-500 text-indigo-400 rounded-lg inline-block px-2 py-1 text-sm font-normal">
-                    Roll Number : {student.rollNo}
+                  <div className="mt-2 border border-indigo-500 text-indigo-400 rounded-lg inline-block px-2 py-1 text-sm">
+                    Roll Number: {getValue(student.rollNumber)}
                   </div>
                 </div>
               </div>
             </div>
+
+            {selectedImage && (
+              <button
+                onClick={handleProfileImageUpdate}
+                className="mt-3 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm cursor-pointer"
+              >
+                Update Photo
+              </button>
+            )}
 
             <div className="mt-8 space-y-3">
               {sections.map((item) => (
@@ -349,7 +645,9 @@ export default function StudentProfile() {
                       )}
                     </button>
 
-                    {["personal", "parent", "admission"].includes(item.key) && (
+                    {["personal", "parent", "admission", "health"].includes(
+                      item.key,
+                    ) && (
                       <button
                         onClick={() => {
                           if (item.key === "personal") {
@@ -363,6 +661,9 @@ export default function StudentProfile() {
                           if (item.key === "admission") {
                             setShowAdmissionModal(true);
                           }
+                          if (item.key === "health") {
+                            setShowHealthModal(true);
+                          }
                         }}
                         className="p-2 rounded-lg text-blue-400 border border-blue-400 cursor-pointer"
                       >
@@ -373,59 +674,24 @@ export default function StudentProfile() {
 
                   {openSection === item.key && item.key === "personal" && (
                     <div className="border-t border-gray-800 p-2">
-                      <table className="w-full">
-                        <tbody>
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 font-normal text-sm">
-                              Aadhar Number :
-                            </td>
+                      <div className="max-h-[420px] overflow-y-auto overflow-x-hidden custom-scrollbar">
+                        <div className="divide-y divide-gray-800">
+                          {personalInfo.map((field) => (
+                            <div
+                              key={field.label}
+                              className="flex items-start gap-5 p-3 border-b border-gray-800 last:border-b-0"
+                            >
+                              <span className="text-gray-400 text-sm font-medium shrink-0">
+                                {field.label} :
+                              </span>
 
-                            <td className="p-2 text-white text-sm">
-                              828009599441
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 font-normal text-sm">
-                              Date of Birth :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">
-                              22/08/2019
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 font-normal text-sm">
-                              Category :
-                            </td>
-
-                            <td className="p-2 text-sm font-normal text-white">
-                              General
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-3 text-gray-400 font-normal text-sm">
-                              Religion :
-                            </td>
-
-                            <td className="p-3 text-white font-normal text-sm">
-                              Hindu
-                            </td>
-                          </tr>
-
-                          <tr>
-                            <td className="p-3 text-gray-400 font-medium font-normal text-sm">
-                              Address :
-                            </td>
-
-                            <td className="p-3 text-white font-normal text-sm">
-                              BKD-13 OUT HOUSE ST.35 SECTOR-09
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                              <span className="text-white text-sm break-words whitespace-pre-wrap flex-1">
+                                {getValue(field.value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -433,55 +699,24 @@ export default function StudentProfile() {
                     <div className="border-t border-gray-800 p-2">
                       <table className="w-full">
                         <tbody>
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Father's Name :
-                            </td>
+                          {parentInfo.map((field, index) => (
+                            <tr
+                              key={field.label}
+                              className={
+                                index !== parentInfo.length - 1
+                                  ? "border-b border-gray-800"
+                                  : ""
+                              }
+                            >
+                              <td className="p-3 text-gray-400 text-sm">
+                                {field.label} :
+                              </td>
 
-                            <td className="p-2 text-white text-sm">
-                              RADHESHYAM TANDI
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Phone :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">
-                              9770855427
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Mother's Name :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">
-                              MADNABATI TANDI
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Mother Mobile :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">
-                              7273036287
-                            </td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Email :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">
-                              demo@gmail.com
-                            </td>
-                          </tr>
+                              <td className="p-3 text-white text-sm break-words">
+                                {getValue(field.value)}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -491,45 +726,24 @@ export default function StudentProfile() {
                     <div className="border-t border-gray-800 p-2">
                       <table className="w-full">
                         <tbody>
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Admission No :
-                            </td>
+                          {admissionInfo.map((field, index) => (
+                            <tr
+                              key={field.label}
+                              className={
+                                index !== admissionInfo.length - 1
+                                  ? "border-b border-gray-800"
+                                  : ""
+                              }
+                            >
+                              <td className="p-3 text-gray-400 text-sm">
+                                {field.label} :
+                              </td>
 
-                            <td className="p-2 text-white text-sm">1118</td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Academic Year :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">2026-27</td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Board :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">CBSE</td>
-                          </tr>
-
-                          <tr className="border-b border-gray-800">
-                            <td className="p-2 text-gray-400 text-sm">
-                              Class :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">IV</td>
-                          </tr>
-
-                          <tr>
-                            <td className="p-2 text-gray-400 text-sm">
-                              Roll Number :
-                            </td>
-
-                            <td className="p-2 text-white text-sm">NA</td>
-                          </tr>
+                              <td className="p-3 text-white text-sm break-words">
+                                {getValue(field.value)}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -1407,15 +1621,21 @@ export default function StudentProfile() {
       <PersonalInfoModal
         isOpen={showPersonalModal}
         onClose={() => setShowPersonalModal(false)}
+        studentData={student}
+        onSaved={() => fetchStudentBySlug(student.slug)}
       />
       <ParentInfoModal
         isOpen={showParentModal}
         onClose={() => setShowParentModal(false)}
+        studentData={student}
+        onSaved={() => fetchStudentBySlug(student.slug)}
       />
 
       <AdmissionInfoModal
         isOpen={showAdmissionModal}
         onClose={() => setShowAdmissionModal(false)}
+        studentData={student}
+        onSaved={() => fetchStudentBySlug(student.slug)}
       />
 
       <DocumentUploadModal

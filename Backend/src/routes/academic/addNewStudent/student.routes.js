@@ -8,6 +8,7 @@ import {
     deleteStudent,
     restoreStudent,
 } from "../../../controllers/academic/addNewStudent/student.controller.js";
+import { studentImageUpload } from "../../../middleware/upload/studentImageUpload.js";
 
 import { authMiddleware } from "../../../middleware/auth/auth.middleware.js";
 import { validate } from "../../../middleware/validate/validate.middleware.js";
@@ -23,6 +24,9 @@ router.use(authMiddleware);
 
 router.post(
     "/",
+    studentImageUpload.single(
+        "profileImage",
+    ),
     validate(createStudentSchema),
     createStudent
 );
@@ -44,6 +48,9 @@ router.patch(
 
 router.patch(
     "/:slug",
+    studentImageUpload.single(
+        "profileImage",
+    ),
     validate(updateStudentSchema),
     updateStudent
 );

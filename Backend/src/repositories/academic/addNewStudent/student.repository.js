@@ -10,8 +10,6 @@ export const findStudentByAdmissionNumberRepo = async (
         where: {
             schoolSlug,
             admissionNumber,
-            isActive: true,
-            deletedAt: null,
         },
     });
 };
@@ -77,13 +75,131 @@ export const createStudentRepo = async (
     });
 };
 
-export const getStudentsRepo = async (schoolSlug) => {
+export const getStudentsRepo = async ({
+    schoolSlug,
+    status = "active",
+    boardSlug,
+    currentClassSlug,
+    currentSessionSlug,
+    category,
+    sponsorshipType,
+    gender,
+    search,
+}) => {
+    const where = {
+        schoolSlug,
+    };
+
+    /*
+     * Active students
+     */
+    if (status === "active") {
+        where.status = "active";
+        where.isActive = true;
+        where.deletedAt = null;
+    }
+
+    /*
+     * Inactive/deleted students
+     */
+    if (status === "inactive") {
+        where.status = "inactive";
+        where.isActive = false;
+        where.deletedAt = {
+            not: null,
+        };
+    }
+
+    /*
+     * status === "all"
+     * Is case me active/inactive condition nahi लगेगी.
+     */
+
+    if (boardSlug) {
+        where.boardSlug = boardSlug;
+    }
+
+    if (currentClassSlug) {
+        where.currentClassSlug = currentClassSlug;
+    }
+
+    if (currentSessionSlug) {
+        where.currentSessionSlug =
+            currentSessionSlug;
+    }
+
+    if (category) {
+        where.category = category;
+    }
+
+    if (sponsorshipType) {
+        where.sponsorshipType =
+            sponsorshipType;
+    }
+
+    if (gender) {
+        where.gender = gender;
+    }
+
+    if (search?.trim()) {
+        const searchText = search.trim();
+
+        where.OR = [
+            {
+                admissionNumber: {
+                    contains: searchText,
+                },
+            },
+            {
+                studentName: {
+                    contains: searchText,
+                },
+            },
+            {
+                fatherName: {
+                    contains: searchText,
+                },
+            },
+            {
+                motherName: {
+                    contains: searchText,
+                },
+            },
+            {
+                phone: {
+                    contains: searchText,
+                },
+            },
+            {
+                motherPhone: {
+                    contains: searchText,
+                },
+            },
+            {
+                email: {
+                    contains: searchText,
+                },
+            },
+            {
+                aadhaarNumber: {
+                    contains: searchText,
+                },
+            },
+            {
+                apaarId: {
+                    contains: searchText,
+                },
+            },
+            {
+                penNumber: {
+                    contains: searchText,
+                },
+            },
+        ];
+    }
+
     return prisma.student.findMany({
-        where: {
-            schoolSlug,
-            isActive: true,
-            deletedAt: null,
-        },
+        where,
 
         include: {
             admissionSession: {
@@ -121,22 +237,31 @@ export const getStudentsRepo = async (schoolSlug) => {
             previousSchoolInfo: true,
         },
 
-        orderBy: {
-            createdAt: "desc",
-        },
+        orderBy:
+            status === "inactive"
+                ? {
+                    deletedAt: "desc",
+                }
+                : {
+                    createdAt: "desc",
+                },
     });
 };
 
 export const getStudentBySlugRepo = async (
     slug,
-    schoolSlug
+    schoolSlug,
+    includeDeleted = false
 ) => {
     return prisma.student.findFirst({
         where: {
             slug,
             schoolSlug,
-            isActive: true,
-            deletedAt: null,
+
+            ...(!includeDeleted && {
+                isActive: true,
+                deletedAt: null,
+            }),
         },
 
         include: {
@@ -175,17 +300,11 @@ export const getStudentBySlugRepo = async (
             previousSchoolInfo: true,
 
             documents: true,
-
             health: true,
-
             healthAssessments: true,
-
             otherInformation: true,
-
             attendance: true,
-
             promotions: true,
-
             academicMapping: true,
         },
     });
@@ -280,8 +399,45 @@ export const deleteStudentRepo = async (id) => {
         },
 
         data: {
+            status: "inactive",
             isActive: false,
             deletedAt: new Date(),
+        },
+
+        include: {
+            admissionSession: {
+                select: {
+                    name: true,
+                },
+            },
+
+            currentSession: {
+                select: {
+                    name: true,
+                },
+            },
+
+            board: {
+                select: {
+                    title: true,
+                },
+            },
+
+            admissionClass: {
+                select: {
+                    classTitle: true,
+                    classType: true,
+                },
+            },
+
+            currentClass: {
+                select: {
+                    classTitle: true,
+                    classType: true,
+                },
+            },
+
+            previousSchoolInfo: true,
         },
     });
 };
