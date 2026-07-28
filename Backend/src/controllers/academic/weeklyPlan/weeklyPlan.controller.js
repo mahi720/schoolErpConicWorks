@@ -5,6 +5,7 @@ import {
     updateWeeklyPlanService,
     deleteWeeklyPlanService,
     restoreWeeklyPlanService,
+    deleteWeeklyPlanLessonService,
 } from "../../../services/academic/weeklyPlan/weeklyPlan.service.js";
 
 import {
@@ -12,119 +13,186 @@ import {
     errorResponse,
 } from "../../../utils/apiResponse.js";
 
-// Create weekly plan
-export const createWeeklyPlanController = async (req, res) => {
+export const createWeeklyPlanController = async (
+    req,
+    res,
+) => {
     try {
-        const data = await createWeeklyPlanService({
-            schoolSlug: req.user?.schoolSlug,
-            userSlug: req.user?.slug,
-            payload: req.body,
-        });
+        const weeklyPlan =
+            await createWeeklyPlanService(
+                req.body,
+                req.user,
+            );
 
         return successResponse(
             res,
             201,
             "Weekly plan created successfully",
-            data,
+            weeklyPlan,
         );
     } catch (error) {
-        return errorResponse(res, 400, error.message);
+        return errorResponse(
+            res,
+            400,
+            error.message,
+        );
     }
 };
 
-// Get weekly plans
-export const getWeeklyPlansController = async (req, res) => {
+export const getWeeklyPlansController = async (
+    req,
+    res,
+) => {
     try {
-        const data = await getWeeklyPlansService({
-            schoolSlug: req.user?.schoolSlug,
-            query: req.query,
-        });
+        const weeklyPlans =
+            await getWeeklyPlansService(
+                req.query,
+                req.user,
+            );
 
         return successResponse(
             res,
             200,
             "Weekly plans fetched successfully",
-            data,
+            weeklyPlans,
         );
     } catch (error) {
-        return errorResponse(res, 400, error.message);
+        return errorResponse(
+            res,
+            400,
+            error.message,
+        );
     }
 };
 
-// Get weekly plan
-export const getWeeklyPlanBySlugController = async (req, res) => {
+export const getWeeklyPlanBySlugController = async (
+    req,
+    res,
+) => {
     try {
-        const data = await getWeeklyPlanBySlugService({
-            slug: req.params.slug,
-            schoolSlug: req.user?.schoolSlug,
-        });
+        const weeklyPlan =
+            await getWeeklyPlanBySlugService(
+                req.params.slug,
+                req.user,
+            );
 
         return successResponse(
             res,
             200,
             "Weekly plan fetched successfully",
-            data,
+            weeklyPlan,
         );
     } catch (error) {
-        return errorResponse(res, 404, error.message);
+        return errorResponse(
+            res,
+            404,
+            error.message,
+        );
     }
 };
 
-// Update weekly plan
-export const updateWeeklyPlanController = async (req, res) => {
+export const updateWeeklyPlanController = async (
+    req,
+    res,
+) => {
     try {
-        const data = await updateWeeklyPlanService({
-            slug: req.params.slug,
-            schoolSlug: req.user?.schoolSlug,
-            userSlug: req.user?.slug,
-            payload: req.body,
-        });
+        const weeklyPlan =
+            await updateWeeklyPlanService(
+                req.params.slug,
+                req.body,
+                req.user,
+            );
 
         return successResponse(
             res,
             200,
             "Weekly plan updated successfully",
-            data,
+            weeklyPlan,
         );
     } catch (error) {
-        return errorResponse(res, 400, error.message);
+        return errorResponse(
+            res,
+            400,
+            error.message,
+        );
     }
 };
 
-// Delete weekly plan
-export const deleteWeeklyPlanController = async (req, res) => {
+export const deleteWeeklyPlanController = async (
+    req,
+    res,
+) => {
     try {
-        const data = await deleteWeeklyPlanService({
-            slug: req.params.slug,
-            schoolSlug: req.user?.schoolSlug,
-        });
+        const weeklyPlan =
+            await deleteWeeklyPlanService(
+                req.params.slug,
+                req.user,
+            );
 
         return successResponse(
             res,
             200,
             "Weekly plan deleted successfully",
-            data,
+            weeklyPlan,
         );
     } catch (error) {
-        return errorResponse(res, 400, error.message);
+        return errorResponse(
+            res,
+            400,
+            error.message,
+        );
     }
 };
 
-// Restore weekly plan
-export const restoreWeeklyPlanController = async (req, res) => {
+export const restoreWeeklyPlanController = async (
+    req,
+    res,
+) => {
     try {
-        const data = await restoreWeeklyPlanService({
-            slug: req.params.slug,
-            schoolSlug: req.user?.schoolSlug,
-        });
+        const weeklyPlan =
+            await restoreWeeklyPlanService(
+                req.params.slug,
+                req.user,
+            );
 
         return successResponse(
             res,
             200,
             "Weekly plan restored successfully",
-            data,
+            weeklyPlan,
         );
     } catch (error) {
-        return errorResponse(res, 400, error.message);
+        return errorResponse(
+            res,
+            400,
+            error.message,
+        );
+    }
+};
+
+export const deleteWeeklyPlanLessonController = async (
+    req,
+    res,
+) => {
+    try {
+        const result =
+            await deleteWeeklyPlanLessonService(
+                req.params.weeklyPlanSlug,
+                req.params.lessonSlug,
+                req.user,
+            );
+
+        return successResponse(
+            res,
+            200,
+            "Weekly plan lesson deleted successfully",
+            result,
+        );
+    } catch (error) {
+        return errorResponse(
+            res,
+            400,
+            error.message,
+        );
     }
 };

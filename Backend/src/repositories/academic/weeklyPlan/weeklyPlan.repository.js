@@ -8,25 +8,18 @@ const weeklyPlanInclude = {
         },
     },
 
-    classSubject: {
+    board: {
         select: {
             slug: true,
-            subjectSlug: true,
-            classSlug: true,
+            title: true,
+        },
+    },
 
-            subject: {
-                select: {
-                    slug: true,
-                    subjectTitle: true,
-                },
-            },
-
-            class: {
-                select: {
-                    slug: true,
-                    classTitle: true,
-                },
-            },
+    class: {
+        select: {
+            slug: true,
+            classTitle: true,
+            classType: true,
         },
     },
 
@@ -47,14 +40,20 @@ const weeklyPlanInclude = {
     },
 
     lessons: {
+        where: {
+            isActive: true,
+        },
+
         orderBy: {
             lessonOrder: "asc",
         },
     },
 };
 
-// Find session
-export const findWeeklyPlanSessionRepo = async (schoolSlug, sessionName) => {
+export const findWeeklyPlanSessionByNameRepo = async (
+    schoolSlug,
+    sessionName,
+) => {
     return prisma.session.findFirst({
         where: {
             schoolSlug,
@@ -64,79 +63,89 @@ export const findWeeklyPlanSessionRepo = async (schoolSlug, sessionName) => {
     });
 };
 
-// Find class
-export const findWeeklyPlanClassRepo = async ({
+export const findWeeklyPlanBoardByTitleRepo = async (
     schoolSlug,
-    sessionSlug,
+    boardTitle,
+) => {
+    return prisma.board.findFirst({
+        where: {
+            schoolSlug,
+            title: boardTitle,
+            isActive: true,
+        },
+    });
+};
+
+export const findWeeklyPlanClassByTitleRepo = async ({
+    schoolSlug,
+    boardSlug,
     classTitle,
 }) => {
     return prisma.class.findFirst({
         where: {
             schoolSlug,
-            sessionSlug,
+            boardSlug,
             classTitle,
             isActive: true,
         },
     });
 };
 
-// Find class subject
-export const findWeeklyPlanClassSubjectRepo = async ({
+export const findWeeklyPlanClassMappingRepo = async ({
     schoolSlug,
+    sessionSlug,
+    boardSlug,
     classSlug,
-    subjectTitle,
 }) => {
-    return prisma.addSubjectToClass.findFirst({
+    return prisma.classSectionStreamMapping.findFirst({
         where: {
             schoolSlug,
+            sessionSlug,
+            boardSlug,
             classSlug,
             isActive: true,
-
-            subject: {
-                subjectTitle,
-                isActive: true,
-            },
         },
 
-        include: {
-            subject: true,
-            class: true,
+        select: {
+            slug: true,
+            sectionSlugs: true,
         },
     });
 };
 
-// Find section
-export const findWeeklyPlanSectionRepo = async ({
+export const findWeeklyPlanSectionByTitleRepo = async ({
     schoolSlug,
     sectionTitle,
+    sectionSlugs,
 }) => {
     return prisma.section.findFirst({
         where: {
             schoolSlug,
-            title: sectionTitle,
+            sectionTitle,
             isActive: true,
+
+            slug: {
+                in: sectionSlugs,
+            },
         },
     });
 };
 
-// Find teacher
-export const findWeeklyPlanTeacherRepo = async ({
-    schoolSlug,
-    teacherSlug,
-}) => {
-    return prisma.user.findFirst({
+export const findWeeklyPlanUserByIdRepo = async (
+    userId,
+) => {
+    return prisma.user.findUnique({
         where: {
-            schoolSlug,
-            slug: teacherSlug,
-            isActive: true,
+            id: userId,
         },
     });
 };
 
-// Find duplicate
 export const findDuplicateWeeklyPlanRepo = async ({
-    teacherSlug,
-    classSubjectSlug,
+    schoolSlug,
+    sessionSlug,
+    boardSlug,
+    classSlug,
     sectionSlug,
     fromDate,
     toDate,
@@ -144,102 +153,118 @@ export const findDuplicateWeeklyPlanRepo = async ({
 }) => {
     return prisma.weeklyPlan.findFirst({
         where: {
-            teacherSlug,
-            classSubjectSlug,
+            schoolSlug,
+            sessionSlug,
+            boardSlug,
+            classSlug,
             sectionSlug,
             fromDate,
             toDate,
 
-            ...(excludeSlug
-                ? {
-                    slug: {
-                        not: excludeSlug,
-                    },
-                }
-                : {}),
+            ...(excludeSlug && {
+                slug: {
+                    not: excludeSlug,
+                },
+            }),
         },
     });
 };
 
-// Create plan with lessons
 export const createWeeklyPlanRepo = async ({
     weeklyPlanData,
     lessons,
 }) => {
     return prisma.$transaction(async (tx) => {
-        const weeklyPlan = await tx.weeklyPlan.create({
+        return tx.weeklyPlan.create({
             data: {
                 ...weeklyPlanData,
 
                 lessons: {
-                    create: lessons,
+                    create: lessons.map(
+                        (lesson, index) => ({
+                            slug: lesson.slug,
+                            schoolSlug: weeklyPlanData.schoolSlug,
+                            lessonOrder:
+                                lesson.lessonOrder || index + 1,
+                            day: lesson.day,
+                            teachingMethodology:
+                                lesson.teachingMethodology,
+                            studentActivities:
+                                lesson.studentActivities,
+                            assessment:
+                                lesson.assessment,
+                        }),
+                    ),
                 },
             },
 
             include: weeklyPlanInclude,
         });
-
-        return weeklyPlan;
     });
 };
 
-// Get all plans
 export const getWeeklyPlansRepo = async ({
     schoolSlug,
     sessionSlug,
-    classSubjectSlug,
+    boardSlug,
+    classSlug,
     sectionSlug,
-    teacherSlug,
     status,
     fromDate,
     toDate,
+    search,
 }) => {
-    const where = {
-        schoolSlug,
-    };
-
-    if (sessionSlug) {
-        where.sessionSlug = sessionSlug;
-    }
-
-    if (classSubjectSlug) {
-        where.classSubjectSlug = classSubjectSlug;
-    }
-
-    if (sectionSlug) {
-        where.sectionSlug = sectionSlug;
-    }
-
-    if (teacherSlug) {
-        where.teacherSlug = teacherSlug;
-    }
-
-    if (status && status !== "all") {
-        where.status = status;
-    }
-
-    if (fromDate || toDate) {
-        where.AND = [];
-
-        if (fromDate) {
-            where.AND.push({
-                toDate: {
-                    gte: new Date(fromDate),
-                },
-            });
-        }
-
-        if (toDate) {
-            where.AND.push({
-                fromDate: {
-                    lte: new Date(toDate),
-                },
-            });
-        }
-    }
-
     return prisma.weeklyPlan.findMany({
-        where,
+        where: {
+            schoolSlug,
+
+            ...(sessionSlug && {
+                sessionSlug,
+            }),
+
+            ...(boardSlug && {
+                boardSlug,
+            }),
+
+            ...(classSlug && {
+                classSlug,
+            }),
+
+            ...(sectionSlug && {
+                sectionSlug,
+            }),
+
+            ...(status && {
+                status,
+            }),
+
+            ...(fromDate && {
+                fromDate: {
+                    gte: fromDate,
+                },
+            }),
+
+            ...(toDate && {
+                toDate: {
+                    lte: toDate,
+                },
+            }),
+
+            ...(search && {
+                OR: [
+                    {
+                        topic: {
+                            contains: search,
+                        },
+                    },
+                    {
+                        subTopic: {
+                            contains: search,
+                        },
+                    },
+                ],
+            }),
+        },
 
         include: weeklyPlanInclude,
 
@@ -254,8 +279,10 @@ export const getWeeklyPlansRepo = async ({
     });
 };
 
-// Get plan by slug
-export const getWeeklyPlanBySlugRepo = async (slug, schoolSlug) => {
+export const getWeeklyPlanBySlugRepo = async (
+    slug,
+    schoolSlug,
+) => {
     return prisma.weeklyPlan.findFirst({
         where: {
             slug,
@@ -266,7 +293,22 @@ export const getWeeklyPlanBySlugRepo = async (slug, schoolSlug) => {
     });
 };
 
-// Update plan and replace lessons
+export const getWeeklyPlanForUpdateRepo = async (
+    slug,
+    schoolSlug,
+) => {
+    return prisma.weeklyPlan.findFirst({
+        where: {
+            slug,
+            schoolSlug,
+        },
+
+        include: {
+            lessons: true,
+        },
+    });
+};
+
 export const updateWeeklyPlanRepo = async ({
     slug,
     schoolSlug,
@@ -274,52 +316,132 @@ export const updateWeeklyPlanRepo = async ({
     lessons,
 }) => {
     return prisma.$transaction(async (tx) => {
-        if (lessons) {
-            await tx.weeklyPlanLesson.deleteMany({
+        const existingLessons =
+            await tx.weeklyPlanLesson.findMany({
                 where: {
                     weeklyPlanSlug: slug,
                     schoolSlug,
                 },
             });
+
+        const incomingLessonSlugs = lessons
+            .filter((lesson) => lesson.slug)
+            .map((lesson) => lesson.slug);
+
+        const lessonsToSoftDelete =
+            existingLessons.filter(
+                (lesson) =>
+                    lesson.isActive &&
+                    !incomingLessonSlugs.includes(
+                        lesson.slug,
+                    ),
+            );
+
+        if (lessonsToSoftDelete.length > 0) {
+            await tx.weeklyPlanLesson.updateMany({
+                where: {
+                    schoolSlug,
+                    weeklyPlanSlug: slug,
+
+                    slug: {
+                        in: lessonsToSoftDelete.map(
+                            (lesson) => lesson.slug,
+                        ),
+                    },
+                },
+
+                data: {
+                    status: "inactive",
+                    isActive: false,
+                    deletedAt: new Date(),
+                },
+            });
         }
 
-        const updatedPlan = await tx.weeklyPlan.update({
+        for (
+            let index = 0;
+            index < lessons.length;
+            index += 1
+        ) {
+            const lesson = lessons[index];
+
+            if (lesson.slug) {
+                await tx.weeklyPlanLesson.updateMany({
+                    where: {
+                        slug: lesson.slug,
+                        weeklyPlanSlug: slug,
+                        schoolSlug,
+                    },
+
+                    data: {
+                        lessonOrder:
+                            lesson.lessonOrder ||
+                            index + 1,
+                        day: lesson.day,
+                        teachingMethodology:
+                            lesson.teachingMethodology,
+                        studentActivities:
+                            lesson.studentActivities,
+                        assessment:
+                            lesson.assessment,
+                        status: "active",
+                        isActive: true,
+                        deletedAt: null,
+                    },
+                });
+
+                continue;
+            }
+
+            await tx.weeklyPlanLesson.create({
+                data: {
+                    slug: lesson.generatedSlug,
+                    schoolSlug,
+                    weeklyPlanSlug: slug,
+                    lessonOrder:
+                        lesson.lessonOrder ||
+                        index + 1,
+                    day: lesson.day,
+                    teachingMethodology:
+                        lesson.teachingMethodology,
+                    studentActivities:
+                        lesson.studentActivities,
+                    assessment:
+                        lesson.assessment,
+                },
+            });
+        }
+
+        return tx.weeklyPlan.update({
             where: {
                 slug,
             },
 
-            data: {
-                ...weeklyPlanData,
-
-                ...(lessons
-                    ? {
-                        lessons: {
-                            create: lessons,
-                        },
-                    }
-                    : {}),
-            },
+            data: weeklyPlanData,
 
             include: weeklyPlanInclude,
         });
-
-        return updatedPlan;
     });
 };
 
-// Soft delete plan and lessons
-export const deleteWeeklyPlanRepo = async (slug, schoolSlug) => {
+export const deleteWeeklyPlanRepo = async ({
+    slug,
+    schoolSlug,
+}) => {
     return prisma.$transaction(async (tx) => {
+        const deletedAt = new Date();
+
         await tx.weeklyPlanLesson.updateMany({
             where: {
                 weeklyPlanSlug: slug,
                 schoolSlug,
+                isActive: true,
             },
 
             data: {
                 status: "inactive",
                 isActive: false,
-                deletedAt: new Date(),
+                deletedAt,
             },
         });
 
@@ -331,7 +453,7 @@ export const deleteWeeklyPlanRepo = async (slug, schoolSlug) => {
             data: {
                 status: "inactive",
                 isActive: false,
-                deletedAt: new Date(),
+                deletedAt,
             },
 
             include: weeklyPlanInclude,
@@ -339,8 +461,10 @@ export const deleteWeeklyPlanRepo = async (slug, schoolSlug) => {
     });
 };
 
-// Restore plan and lessons
-export const restoreWeeklyPlanRepo = async (slug, schoolSlug) => {
+export const restoreWeeklyPlanRepo = async ({
+    slug,
+    schoolSlug,
+}) => {
     return prisma.$transaction(async (tx) => {
         await tx.weeklyPlanLesson.updateMany({
             where: {
@@ -368,5 +492,70 @@ export const restoreWeeklyPlanRepo = async (slug, schoolSlug) => {
 
             include: weeklyPlanInclude,
         });
+    });
+};
+
+export const getWeeklyPlanLessonBySlugRepo = async ({
+    weeklyPlanSlug,
+    lessonSlug,
+    schoolSlug,
+}) => {
+    return prisma.weeklyPlanLesson.findFirst({
+        where: {
+            slug: lessonSlug,
+            weeklyPlanSlug,
+            schoolSlug,
+        },
+    });
+};
+
+export const deleteWeeklyPlanLessonRepo = async ({
+    weeklyPlanSlug,
+    lessonSlug,
+    schoolSlug,
+}) => {
+    return prisma.$transaction(async (tx) => {
+        const lesson =
+            await tx.weeklyPlanLesson.updateMany({
+                where: {
+                    slug: lessonSlug,
+                    weeklyPlanSlug,
+                    schoolSlug,
+                    isActive: true,
+                },
+
+                data: {
+                    status: "inactive",
+                    isActive: false,
+                    deletedAt: new Date(),
+                },
+            });
+
+        const activeLessonCount =
+            await tx.weeklyPlanLesson.count({
+                where: {
+                    weeklyPlanSlug,
+                    schoolSlug,
+                    isActive: true,
+                },
+            });
+
+        await tx.weeklyPlan.updateMany({
+            where: {
+                slug: weeklyPlanSlug,
+                schoolSlug,
+            },
+
+            data: {
+                numberOfPeriods:
+                    activeLessonCount,
+            },
+        });
+
+        return {
+            lesson,
+            numberOfPeriods:
+                activeLessonCount,
+        };
     });
 };

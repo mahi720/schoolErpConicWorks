@@ -95,6 +95,39 @@ enum SchoolPlan {
 
 // login modal
 
+// model User {
+//   id   Int    @id @default(autoincrement())
+//   slug String @unique @db.VarChar(50)
+
+//   name     String
+//   email    String
+//   password String
+//   role     Role   @default(SUPER_ADMIN)
+
+//   schoolSlug String? @db.VarChar(50)
+//   school     School? @relation(fields: [schoolSlug], references: [slug])
+
+//   schoolCode String?
+
+//   weeklyPlans WeeklyPlan[]
+
+//   studentPromotionsApproved StudentPromotion[]     @relation("StudentPromotionApprovedBy")
+//   markedAttendanceDays      StudentAttendanceDay[] @relation("AttendanceDayMarkedBy")
+//   lockedAttendanceDays      StudentAttendanceDay[] @relation("AttendanceDayLockedBy")
+//   unlockedAttendanceDays    StudentAttendanceDay[] @relation("AttendanceDayUnlockedBy")
+
+//   performedAttendanceLogs StudentAttendanceLog[] @relation("AttendanceLogPerformedBy")
+
+//   isActive          Boolean            @default(true)
+//   refreshToken      String?            @db.Text
+//   createdAt         DateTime           @default(now())
+//   updatedAt         DateTime           @updatedAt
+//   studentPromotions StudentPromotion[]
+
+//   @@unique([email, schoolSlug])
+//   @@map("users")
+// }
+
 model User {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
@@ -111,10 +144,12 @@ model User {
 
   weeklyPlans WeeklyPlan[]
 
-  studentPromotionsApproved StudentPromotion[]     @relation("StudentPromotionApprovedBy")
-  markedAttendanceDays      StudentAttendanceDay[] @relation("AttendanceDayMarkedBy")
-  lockedAttendanceDays      StudentAttendanceDay[] @relation("AttendanceDayLockedBy")
-  unlockedAttendanceDays    StudentAttendanceDay[] @relation("AttendanceDayUnlockedBy")
+  approvedStudentPromotions   StudentPromotion[] @relation("StudentPromotionApprovedBy")
+  rolledBackStudentPromotions StudentPromotion[] @relation("StudentPromotionRolledBackBy")
+
+  markedAttendanceDays   StudentAttendanceDay[] @relation("AttendanceDayMarkedBy")
+  lockedAttendanceDays   StudentAttendanceDay[] @relation("AttendanceDayLockedBy")
+  unlockedAttendanceDays StudentAttendanceDay[] @relation("AttendanceDayUnlockedBy")
 
   performedAttendanceLogs StudentAttendanceLog[] @relation("AttendanceLogPerformedBy")
 
@@ -213,8 +248,9 @@ model Board {
   studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionBoard")
   studentPromotionsNew      StudentPromotion[] @relation("NewPromotionBoard")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  weeklyPlans WeeklyPlan[]
 
   @@unique([schoolSlug, title])
   @@map("boards")
@@ -797,6 +833,58 @@ enum DocumentType {
 
 // mapping rollNumber, stream and section
 
+// model StudentAcademicRollSectionStreamMapping {
+//   id   Int    @id @default(autoincrement())
+//   slug String @unique @db.VarChar(50)
+
+//   schoolSlug String @db.VarChar(50)
+//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+//   studentSlug String  @db.VarChar(50)
+//   student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
+
+//   sessionSlug String  @db.VarChar(50)
+//   session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+//   boardSlug String @db.VarChar(50)
+//   board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+//   classSlug String @db.VarChar(50)
+//   class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+//   sectionSlug String?  @db.VarChar(50)
+//   section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+//   streamSlug String? @db.VarChar(50)
+//   stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+//   rollNumberPrefix String?
+//   rollNumber       Int?
+
+//   studentAttendances    StudentAttendance[]
+//   studentAttendanceDays StudentAttendanceDay[]
+//   studentAttendanceLogs StudentAttendanceLog[]
+
+//   status    String    @default("active")
+//   isActive  Boolean   @default(true)
+//   deletedAt DateTime?
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@unique([schoolSlug, boardSlug, sessionSlug, classSlug, sectionSlug, rollNumber])
+//   @@unique([studentSlug, sessionSlug])
+//   @@index([schoolSlug])
+//   @@index([sessionSlug])
+//   @@index([classSlug])
+//   @@index([sectionSlug])
+//   @@index([streamSlug])
+//   @@index([rollNumber])
+//   @@index([boardSlug])
+//   @@index([studentSlug])
+//   @@map("student_academic_roll_section_stream_mappings")
+// }
+
 model StudentAcademicRollSectionStreamMapping {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
@@ -822,12 +910,19 @@ model StudentAcademicRollSectionStreamMapping {
   streamSlug String? @db.VarChar(50)
   stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
 
-  rollNumberPrefix String?
+  rollNumberPrefix String? @db.VarChar(20)
   rollNumber       Int?
+
+  academicStatus StudentAcademicStatus @default(CURRENT)
+
+  academicStatusChangedAt DateTime?
 
   studentAttendances    StudentAttendance[]
   studentAttendanceDays StudentAttendanceDay[]
   studentAttendanceLogs StudentAttendanceLog[]
+
+  previousPromotionMappings StudentPromotion[] @relation("PreviousAcademicMappingPromotion")
+  newPromotionMappings      StudentPromotion[] @relation("NewAcademicMappingPromotion")
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -836,16 +931,19 @@ model StudentAcademicRollSectionStreamMapping {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([schoolSlug, boardSlug, sessionSlug, classSlug, sectionSlug, rollNumber])
-  @@unique([studentSlug, sessionSlug])
-  @@index([schoolSlug])
-  @@index([sessionSlug])
-  @@index([classSlug])
-  @@index([sectionSlug])
-  @@index([streamSlug])
-  @@index([rollNumber])
-  @@index([boardSlug])
-  @@index([studentSlug])
+  @@unique([schoolSlug, studentSlug, sessionSlug], map: "uq_student_session_mapping")
+  @@index([schoolSlug], map: "idx_sarm_school")
+  @@index([studentSlug], map: "idx_sarm_student")
+  @@index([sessionSlug], map: "idx_sarm_session")
+  @@index([boardSlug], map: "idx_sarm_board")
+  @@index([classSlug], map: "idx_sarm_class")
+  @@index([sectionSlug], map: "idx_sarm_section")
+  @@index([streamSlug], map: "idx_sarm_stream")
+  @@index([rollNumber], map: "idx_sarm_roll")
+  @@index([academicStatus], map: "idx_sarm_academic_status")
+  @@index([schoolSlug, sessionSlug, boardSlug, classSlug], map: "idx_sarm_class_filter")
+  @@index([schoolSlug, sessionSlug, boardSlug, classSlug, sectionSlug], map: "idx_sarm_section_filter")
+  @@index([schoolSlug, sessionSlug, boardSlug, classSlug, sectionSlug, rollNumber], map: "idx_sarm_roll_filter")
   @@map("student_academic_roll_section_stream_mappings")
 }
 
@@ -1129,9 +1227,84 @@ enum CalendarCategory {
 
 // student promotion 
 
+// model StudentPromotion {
+//   id   Int    @id @default(autoincrement())
+//   slug String @unique @db.VarChar(50)
+
+//   schoolSlug String @db.VarChar(50)
+//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+//   studentSlug String  @db.VarChar(50)
+//   student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
+
+//   // Previous Academic Information
+
+//   previousSessionSlug String  @db.VarChar(50)
+//   previousSession     Session @relation("PreviousPromotionSession", fields: [previousSessionSlug], references: [slug], onDelete: Cascade)
+
+//   previousBoardSlug String @db.VarChar(50)
+//   previousBoard     Board  @relation("PreviousPromotionBoard", fields: [previousBoardSlug], references: [slug], onDelete: Cascade)
+
+//   previousClassSlug String @db.VarChar(50)
+//   previousClass     Class  @relation("PreviousPromotionClass", fields: [previousClassSlug], references: [slug], onDelete: Cascade)
+
+//   previousSectionSlug String?  @db.VarChar(50)
+//   previousSection     Section? @relation("PreviousPromotionSection", fields: [previousSectionSlug], references: [slug], onDelete: SetNull)
+
+//   previousStreamSlug String? @db.VarChar(50)
+//   previousStream     Stream? @relation("PreviousPromotionStream", fields: [previousStreamSlug], references: [slug], onDelete: SetNull)
+
+//   previousRollNumber Int?
+
+//   // New Academic Information
+
+//   newSessionSlug String  @db.VarChar(50)
+//   newSession     Session @relation("NewPromotionSession", fields: [newSessionSlug], references: [slug], onDelete: Cascade)
+
+//   newBoardSlug String @db.VarChar(50)
+//   newBoard     Board  @relation("NewPromotionBoard", fields: [newBoardSlug], references: [slug], onDelete: Cascade)
+
+//   newClassSlug String @db.VarChar(50)
+//   newClass     Class  @relation("NewPromotionClass", fields: [newClassSlug], references: [slug], onDelete: Cascade)
+
+//   newSectionSlug String?  @db.VarChar(50)
+//   newSection     Section? @relation("NewPromotionSection", fields: [newSectionSlug], references: [slug], onDelete: SetNull)
+
+//   newStreamSlug String? @db.VarChar(50)
+//   newStream     Stream? @relation("NewPromotionStream", fields: [newStreamSlug], references: [slug], onDelete: SetNull)
+
+//   newRollNumber Int?
+
+//   promotionType PromotionType @default(PROMOTED)
+
+//   promotionStatus PromotionStatus @default(COMPLETED)
+
+//   remarks String? @db.Text
+
+//   promotedAt DateTime @default(now())
+
+//   promotedBySlug String? @db.VarChar(50)
+//   promotedBy     User?   @relation("StudentPromotionApprovedBy", fields: [promotedBySlug], references: [slug], onDelete: SetNull)
+
+//   status    String    @default("active")
+//   isActive  Boolean   @default(true)
+//   deletedAt DateTime?
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@index([schoolSlug])
+//   @@index([studentSlug])
+//   @@index([previousSessionSlug])
+//   @@index([newSessionSlug])
+//   @@map("student_promotions")
+// }
+
 model StudentPromotion {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
+
+  batchSlug String @db.VarChar(50)
 
   schoolSlug String @db.VarChar(50)
   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
@@ -1139,16 +1312,20 @@ model StudentPromotion {
   studentSlug String  @db.VarChar(50)
   student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
 
-  // Previous Academic Information
+  previousAcademicMappingSlug String                                  @db.VarChar(50)
+  previousAcademicMapping     StudentAcademicRollSectionStreamMapping @relation("PreviousAcademicMappingPromotion", fields: [previousAcademicMappingSlug], references: [slug], onDelete: Restrict)
+
+  newAcademicMappingSlug String                                  @db.VarChar(50)
+  newAcademicMapping     StudentAcademicRollSectionStreamMapping @relation("NewAcademicMappingPromotion", fields: [newAcademicMappingSlug], references: [slug], onDelete: Restrict)
 
   previousSessionSlug String  @db.VarChar(50)
-  previousSession     Session @relation("PreviousPromotionSession", fields: [previousSessionSlug], references: [slug], onDelete: Cascade)
+  previousSession     Session @relation("PreviousPromotionSession", fields: [previousSessionSlug], references: [slug], onDelete: Restrict)
 
   previousBoardSlug String @db.VarChar(50)
-  previousBoard     Board  @relation("PreviousPromotionBoard", fields: [previousBoardSlug], references: [slug], onDelete: Cascade)
+  previousBoard     Board  @relation("PreviousPromotionBoard", fields: [previousBoardSlug], references: [slug], onDelete: Restrict)
 
   previousClassSlug String @db.VarChar(50)
-  previousClass     Class  @relation("PreviousPromotionClass", fields: [previousClassSlug], references: [slug], onDelete: Cascade)
+  previousClass     Class  @relation("PreviousPromotionClass", fields: [previousClassSlug], references: [slug], onDelete: Restrict)
 
   previousSectionSlug String?  @db.VarChar(50)
   previousSection     Section? @relation("PreviousPromotionSection", fields: [previousSectionSlug], references: [slug], onDelete: SetNull)
@@ -1156,18 +1333,17 @@ model StudentPromotion {
   previousStreamSlug String? @db.VarChar(50)
   previousStream     Stream? @relation("PreviousPromotionStream", fields: [previousStreamSlug], references: [slug], onDelete: SetNull)
 
-  previousRollNumber Int?
-
-  // New Academic Information
+  previousRollNumberPrefix String? @db.VarChar(20)
+  previousRollNumber       Int?
 
   newSessionSlug String  @db.VarChar(50)
-  newSession     Session @relation("NewPromotionSession", fields: [newSessionSlug], references: [slug], onDelete: Cascade)
+  newSession     Session @relation("NewPromotionSession", fields: [newSessionSlug], references: [slug], onDelete: Restrict)
 
   newBoardSlug String @db.VarChar(50)
-  newBoard     Board  @relation("NewPromotionBoard", fields: [newBoardSlug], references: [slug], onDelete: Cascade)
+  newBoard     Board  @relation("NewPromotionBoard", fields: [newBoardSlug], references: [slug], onDelete: Restrict)
 
   newClassSlug String @db.VarChar(50)
-  newClass     Class  @relation("NewPromotionClass", fields: [newClassSlug], references: [slug], onDelete: Cascade)
+  newClass     Class  @relation("NewPromotionClass", fields: [newClassSlug], references: [slug], onDelete: Restrict)
 
   newSectionSlug String?  @db.VarChar(50)
   newSection     Section? @relation("NewPromotionSection", fields: [newSectionSlug], references: [slug], onDelete: SetNull)
@@ -1175,10 +1351,10 @@ model StudentPromotion {
   newStreamSlug String? @db.VarChar(50)
   newStream     Stream? @relation("NewPromotionStream", fields: [newStreamSlug], references: [slug], onDelete: SetNull)
 
-  newRollNumber Int?
+  newRollNumberPrefix String? @db.VarChar(20)
+  newRollNumber       Int?
 
-  promotionType PromotionType @default(PROMOTED)
-
+  promotionType   PromotionType   @default(PROMOTED)
   promotionStatus PromotionStatus @default(COMPLETED)
 
   remarks String? @db.Text
@@ -1188,6 +1364,13 @@ model StudentPromotion {
   promotedBySlug String? @db.VarChar(50)
   promotedBy     User?   @relation("StudentPromotionApprovedBy", fields: [promotedBySlug], references: [slug], onDelete: SetNull)
 
+  rolledBackAt DateTime?
+
+  rolledBackBySlug String? @db.VarChar(50)
+  rolledBackBy     User?   @relation("StudentPromotionRolledBackBy", fields: [rolledBackBySlug], references: [slug], onDelete: SetNull)
+
+  rollbackRemarks String? @db.Text
+
   status    String    @default("active")
   isActive  Boolean   @default(true)
   deletedAt DateTime?
@@ -1195,10 +1378,21 @@ model StudentPromotion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([schoolSlug, studentSlug, previousSessionSlug, newSessionSlug])
+  @@index([batchSlug])
   @@index([schoolSlug])
   @@index([studentSlug])
+  @@index([previousAcademicMappingSlug])
+  @@index([newAcademicMappingSlug])
   @@index([previousSessionSlug])
   @@index([newSessionSlug])
+  @@index([previousBoardSlug])
+  @@index([newBoardSlug])
+  @@index([previousClassSlug])
+  @@index([newClassSlug])
+  @@index([promotionType])
+  @@index([promotionStatus])
+  @@index([promotedAt])
   @@map("student_promotions")
 }
 
@@ -1211,6 +1405,15 @@ enum PromotionType {
 enum PromotionStatus {
   COMPLETED
   ROLLED_BACK
+}
+
+enum StudentAcademicStatus {
+  CURRENT
+  PROMOTED
+  DETAINED
+  REPEATED
+  COMPLETED
+  TRANSFERRED
 }
 
 //student health info modal 
@@ -1344,6 +1547,66 @@ model StudentOtherInformation {
 
 // weekly lession 
 
+// model WeeklyPlan {
+//   id   Int    @id @default(autoincrement())
+//   slug String @unique @db.VarChar(50)
+
+//   schoolSlug String @db.VarChar(50)
+//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+//   sessionSlug String  @db.VarChar(50)
+//   session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+//   classSubjectSlug String            @db.VarChar(50)
+//   classSubject     AddSubjectToClass @relation(fields: [classSubjectSlug], references: [slug], onDelete: Cascade)
+
+//   sectionSlug String  @db.VarChar(50)
+//   section     Section @relation(fields: [sectionSlug], references: [slug], onDelete: Cascade)
+
+//   boardSlug String @db.VarChar(50)
+//   board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+//   userSlug String @db.VarChar(50)
+//   user     User   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
+
+//   classSlug String @db.VarChar(50)
+//   class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+//   teacherSlug String? @db.VarChar(50)
+
+//   fromDate DateTime
+//   toDate   DateTime
+
+//   topic String @db.Text
+
+//   subTopic String? @db.Text
+
+//   introductionAids String? @db.Text
+
+//   introductionActivity String? @db.Text
+
+//   learningObjective String? @db.Text
+
+//   numberOfPeriods Int
+
+//   lessons WeeklyPlanLesson[]
+
+//   status    String    @default("active")
+//   isActive  Boolean   @default(true)
+//   deletedAt DateTime?
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@unique([teacherSlug, classSubjectSlug, sectionSlug, fromDate, toDate])
+//   @@index([schoolSlug])
+//   @@index([sessionSlug])
+//   @@index([classSubjectSlug])
+//   @@index([sectionSlug])
+//   @@index([teacherSlug])
+//   @@map("weekly_plans")
+// }
+
 model WeeklyPlan {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
@@ -1354,8 +1617,11 @@ model WeeklyPlan {
   sessionSlug String  @db.VarChar(50)
   session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
 
-  classSubjectSlug String            @db.VarChar(50)
-  classSubject     AddSubjectToClass @relation(fields: [classSubjectSlug], references: [slug], onDelete: Cascade)
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
 
   sectionSlug String  @db.VarChar(50)
   section     Section @relation(fields: [sectionSlug], references: [slug], onDelete: Cascade)
@@ -1363,25 +1629,15 @@ model WeeklyPlan {
   userSlug String @db.VarChar(50)
   user     User   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
 
-  classSlug String @db.VarChar(50)
-  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
-
-  teacherSlug String? @db.VarChar(50)
-
   fromDate DateTime
   toDate   DateTime
 
-  topic String @db.Text
-
-  subTopic String? @db.Text
-
-  introductionAids String? @db.Text
-
-  introductionActivity String? @db.Text
-
-  learningObjective String? @db.Text
-
-  numberOfPeriods Int
+  topic                String
+  subTopic             String?
+  introductionAids     String?
+  introductionActivity String?
+  learningObjective    String?
+  numberOfPeriods      Int
 
   lessons WeeklyPlanLesson[]
 
@@ -1389,19 +1645,50 @@ model WeeklyPlan {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  addSubjectToClass   AddSubjectToClass? @relation(fields: [addSubjectToClassId], references: [id])
+  addSubjectToClassId Int?
 
-  @@unique([teacherSlug, classSubjectSlug, sectionSlug, fromDate, toDate])
-  @@index([schoolSlug])
-  @@index([sessionSlug])
-  @@index([classSubjectSlug])
-  @@index([sectionSlug])
-  @@index([teacherSlug])
-  @@map("weekly_plans")
+  @@unique([schoolSlug, sessionSlug, boardSlug, classSlug, sectionSlug, fromDate, toDate], map: "uq_weekly_plan_period")
+  @@index([schoolSlug, sessionSlug, boardSlug, classSlug], map: "idx_weekly_plan_filters")
+  @@index([fromDate, toDate], map: "idx_weekly_plan_dates")
+  @@map("weeklyPlans")
 }
 
 // weekly plan lesson
+
+// model WeeklyPlanLesson {
+//   id   Int    @id @default(autoincrement())
+//   slug String @unique @db.VarChar(50)
+
+//   schoolSlug String @db.VarChar(50)
+//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+//   weeklyPlanSlug String     @db.VarChar(50)
+//   weeklyPlan     WeeklyPlan @relation(fields: [weeklyPlanSlug], references: [slug], onDelete: Cascade)
+
+//   lessonOrder Int?
+
+//   day String
+
+//   teachingMethodology String @db.Text
+
+//   studentActivities String @db.Text
+
+//   assessment String @db.Text
+
+//   status    String    @default("active")
+//   isActive  Boolean   @default(true)
+//   deletedAt DateTime?
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@unique([weeklyPlanSlug, lessonOrder])
+//   @@index([weeklyPlanSlug])
+//   @@map("weekly_plan_lessons")
+// }
 
 model WeeklyPlanLesson {
   id   Int    @id @default(autoincrement())
@@ -1413,15 +1700,12 @@ model WeeklyPlanLesson {
   weeklyPlanSlug String     @db.VarChar(50)
   weeklyPlan     WeeklyPlan @relation(fields: [weeklyPlanSlug], references: [slug], onDelete: Cascade)
 
-  lessonOrder Int?
+  lessonOrder Int
+  day         String
 
-  day String
-
-  teachingMethodology String @db.Text
-
-  studentActivities String @db.Text
-
-  assessment String @db.Text
+  teachingMethodology String
+  studentActivities   String
+  assessment          String
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -1430,7 +1714,7 @@ model WeeklyPlanLesson {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([weeklyPlanSlug, lessonOrder])
-  @@index([weeklyPlanSlug])
-  @@map("weekly_plan_lessons")
+  @@unique([weeklyPlanSlug, lessonOrder], map: "uq_weekly_plan_lesson_order")
+  @@index([schoolSlug, weeklyPlanSlug], map: "idx_weekly_plan_lesson")
+  @@map("weeklyPlanLessons")
 }

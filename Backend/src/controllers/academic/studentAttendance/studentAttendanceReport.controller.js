@@ -64,11 +64,27 @@ export const getStudentDayWiseReportController = async (
     res,
 ) => {
     try {
-        const report = await getStudentDayWiseReportService({
-            params: req.params,
-            query: req.query,
-            user: req.user,
-        });
+        const { academicMappingSlug } = req.params;
+
+        // console.log(
+        //     "Student day-wise academicMappingSlug:",
+        //     academicMappingSlug,
+        // );
+
+        if (!academicMappingSlug) {
+            return errorResponse(
+                res,
+                400,
+                "Academic mapping slug is required",
+            );
+        }
+
+        const report =
+            await getStudentDayWiseReportService({
+                user: req.user,
+                academicMappingSlug,
+                query: req.query,
+            });
 
         return successResponse(
             res,
@@ -79,7 +95,7 @@ export const getStudentDayWiseReportController = async (
     } catch (error) {
         return errorResponse(
             res,
-            error.statusCode || 400,
+            400,
             error.message,
         );
     }

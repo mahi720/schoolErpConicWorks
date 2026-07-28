@@ -1,247 +1,257 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 import {
-    findWeeklyPlanSessionRepo,
-    findWeeklyPlanClassRepo,
-    findWeeklyPlanClassSubjectRepo,
-    findWeeklyPlanSectionRepo,
-    findWeeklyPlanTeacherRepo,
+    findWeeklyPlanSessionByNameRepo,
+    findWeeklyPlanBoardByTitleRepo,
+    findWeeklyPlanClassByTitleRepo,
+    findWeeklyPlanClassMappingRepo,
+    findWeeklyPlanSectionByTitleRepo,
+    findWeeklyPlanUserByIdRepo,
     findDuplicateWeeklyPlanRepo,
     createWeeklyPlanRepo,
     getWeeklyPlansRepo,
     getWeeklyPlanBySlugRepo,
+    getWeeklyPlanForUpdateRepo,
     updateWeeklyPlanRepo,
     deleteWeeklyPlanRepo,
     restoreWeeklyPlanRepo,
+    getWeeklyPlanLessonBySlugRepo,
+    deleteWeeklyPlanLessonRepo,
 } from "../../../repositories/academic/weeklyPlan/weeklyPlan.repository.js";
 
-const formatWeeklyPlan = (plan) => {
-    if (!plan) return null;
+const getSchoolSlug = (user) => {
+    const schoolSlug = user?.schoolSlug;
 
-    return {
-        id: plan.id,
-        slug: plan.slug,
-        schoolSlug: plan.schoolSlug,
+    if (!schoolSlug) {
+        throw new Error("School information not found");
+    }
 
-        sessionSlug: plan.sessionSlug,
-        session: plan.session?.name || null,
+    return schoolSlug;
+};
 
-        classSubjectSlug: plan.classSubjectSlug,
-        classSlug: plan.classSubject?.class?.slug || null,
-        classTitle: plan.classSubject?.class?.classTitle || null,
+const normalizeSectionSlugs = (sectionSlugs) => {
+    if (Array.isArray(sectionSlugs)) {
+        return sectionSlugs;
+    }
 
-        subjectSlug: plan.classSubject?.subject?.slug || null,
-        subject: plan.classSubject?.subject?.subjectName || null,
+    if (typeof sectionSlugs === "string") {
+        try {
+            const parsedValue = JSON.parse(sectionSlugs);
 
-        sectionSlug: plan.sectionSlug,
-        section: plan.section?.sectionTitle || null,
+            return Array.isArray(parsedValue)
+                ? parsedValue
+                : [];
+        } catch {
+            return [];
+        }
+    }
 
-        userSlug: plan.userSlug,
-        createdBy: plan.user?.name || null,
-
-        teacherSlug: plan.teacherSlug,
-
-        fromDate: plan.fromDate,
-        toDate: plan.toDate,
-
-        topic: plan.topic,
-        subTopic: plan.subTopic,
-        introductionAids: plan.introductionAids,
-        introductionActivity: plan.introductionActivity,
-        learningObjective: plan.learningObjective,
-        numberOfPeriods: plan.numberOfPeriods,
-
-        lessons:
-            plan.lessons?.map((lesson) => ({
-                id: lesson.id,
-                slug: lesson.slug,
-                lessonOrder: lesson.lessonOrder,
-                day: lesson.day,
-                teachingMethodology: lesson.teachingMethodology,
-                studentActivities: lesson.studentActivities,
-                assessment: lesson.assessment,
-                status: lesson.status,
-                isActive: lesson.isActive,
-                deletedAt: lesson.deletedAt,
-                createdAt: lesson.createdAt,
-                updatedAt: lesson.updatedAt,
-            })) || [],
-
-        status: plan.status,
-        isActive: plan.isActive,
-        deletedAt: plan.deletedAt,
-        createdAt: plan.createdAt,
-        updatedAt: plan.updatedAt,
-    };
+    return [];
 };
 
 const resolveWeeklyPlanRelations = async ({
     schoolSlug,
     sessionName,
+    boardTitle,
     classTitle,
-    subjectName,
     sectionTitle,
-    teacherSlug,
 }) => {
-    const session = await findWeeklyPlanSessionRepo(
-        schoolSlug,
-        sessionName,
-    );
+    const session =
+        await findWeeklyPlanSessionByNameRepo(
+            schoolSlug,
+            sessionName,
+        );
 
     if (!session) {
         throw new Error("Selected session not found");
     }
 
-    const classData = await findWeeklyPlanClassRepo({
-        schoolSlug,
-        sessionSlug: session.slug,
-        classTitle,
-    });
-
-    if (!classData) {
-        throw new Error("Selected class not found");
-    }
-
-    const classSubject = await findWeeklyPlanClassSubjectRepo({
-        schoolSlug,
-        classSlug: classData.slug,
-        subjectName,
-    });
-
-    if (!classSubject) {
-        throw new Error("Selected subject is not assigned to this class");
-    }
-
-    const section = await findWeeklyPlanSectionRepo({
-        schoolSlug,
-        sectionTitle,
-    });
-
-    if (!section) {
-        throw new Error("Selected section not found");
-    }
-
-    let teacher = null;
-
-    if (teacherSlug) {
-        teacher = await findWeeklyPlanTeacherRepo({
+    const board =
+        await findWeeklyPlanBoardByTitleRepo(
             schoolSlug,
-            teacherSlug,
+            boardTitle,
+        );
+
+    if (!board) {
+        throw new Error("Selected board not found");
+    }
+
+    const classData =
+        await findWeeklyPlanClassByTitleRepo({
+            schoolSlug,
+            // sessionSlug: session.slug,
+            boardSlug: board.slug,
+            classTitle,
         });
 
-        if (!teacher) {
-            throw new Error("Selected teacher not found");
-        }
+    if (!classData) {
+        throw new Error(
+            "Selected class not found for this session and board",
+        );
+    }
+
+    const classMapping =
+        await findWeeklyPlanClassMappingRepo({
+            schoolSlug,
+            sessionSlug: session.slug,
+            boardSlug: board.slug,
+            classSlug: classData.slug,
+        });
+
+    if (!classMapping) {
+        throw new Error(
+            "Class section mapping not found",
+        );
+    }
+
+    const sectionSlugs =
+        normalizeSectionSlugs(
+            classMapping.sectionSlugs,
+        );
+
+    if (sectionSlugs.length === 0) {
+        throw new Error(
+            "No sections are mapped with selected class",
+        );
+    }
+
+    const section =
+        await findWeeklyPlanSectionByTitleRepo({
+            schoolSlug,
+            sectionTitle,
+            sectionSlugs,
+        });
+
+    if (!section) {
+        throw new Error(
+            "Selected section is not mapped with selected class",
+        );
     }
 
     return {
         session,
+        board,
         classData,
-        classSubject,
         section,
-        teacher,
     };
 };
 
-// Create weekly plan
-export const createWeeklyPlanService = async ({
-    schoolSlug,
-    userSlug,
+export const createWeeklyPlanService = async (
     payload,
-}) => {
-    if (!schoolSlug) {
-        throw new Error("School information not found");
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
+
+    const creator =
+        await findWeeklyPlanUserByIdRepo(
+            user.id,
+        );
+
+    if (!creator) {
+        throw new Error("User not found");
     }
 
-    if (!userSlug) {
-        throw new Error("Logged-in user information not found");
-    }
-
-    const relations = await resolveWeeklyPlanRelations({
+    const {
+        session,
+        board,
+        classData,
+        section,
+    } = await resolveWeeklyPlanRelations({
         schoolSlug,
         sessionName: payload.session,
+        boardTitle: payload.board,
         classTitle: payload.classTitle,
-        subjectName: payload.subject,
-        sectionTitle: payload.section,
-        teacherSlug: payload.teacherSlug,
+        sectionTitle:
+            payload.sectionTitle,
     });
 
-    const fromDate = new Date(payload.fromDate);
-    const toDate = new Date(payload.toDate);
-
-    if (toDate < fromDate) {
-        throw new Error("To date cannot be before from date");
-    }
-
-    const finalTeacherSlug = relations.teacher?.slug || null;
-
-    const duplicate = await findDuplicateWeeklyPlanRepo({
-        teacherSlug: finalTeacherSlug,
-        classSubjectSlug: relations.classSubject.slug,
-        sectionSlug: relations.section.slug,
-        fromDate,
-        toDate,
-    });
+    const duplicate =
+        await findDuplicateWeeklyPlanRepo({
+            schoolSlug,
+            sessionSlug: session.slug,
+            boardSlug: board.slug,
+            classSlug: classData.slug,
+            sectionSlug: section.slug,
+            fromDate: payload.fromDate,
+            toDate: payload.toDate,
+        });
 
     if (duplicate) {
         throw new Error(
-            "Weekly plan already exists for this teacher, subject, section and date range",
+            "Weekly plan already exists for selected class, section and date range",
         );
     }
 
-    const lessons = payload.lessons.map((lesson, index) => ({
-        slug: randomUUID(),
-        schoolSlug,
-        lessonOrder: lesson.lessonOrder ?? index + 1,
-        day: lesson.day,
-        teachingMethodology: lesson.teachingMethodology,
-        studentActivities: lesson.studentActivities,
-        assessment: lesson.assessment,
-    }));
+    const weeklyPlanSlug =
+        randomUUID();
 
-    const createdPlan = await createWeeklyPlanRepo({
+    const lessons =
+        payload.lessons.map(
+            (lesson, index) => ({
+                slug: randomUUID(),
+                lessonOrder:
+                    lesson.lessonOrder ||
+                    index + 1,
+                day: lesson.day,
+                teachingMethodology:
+                    lesson.teachingMethodology,
+                studentActivities:
+                    lesson.studentActivities,
+                assessment:
+                    lesson.assessment,
+            }),
+        );
+
+    return createWeeklyPlanRepo({
         weeklyPlanData: {
-            slug: randomUUID(),
+            slug: weeklyPlanSlug,
             schoolSlug,
-            sessionSlug: relations.session.slug,
-            classSubjectSlug: relations.classSubject.slug,
-            sectionSlug: relations.section.slug,
-            userSlug,
-            teacherSlug: finalTeacherSlug,
-            fromDate,
-            toDate,
+            sessionSlug: session.slug,
+            boardSlug: board.slug,
+            classSlug: classData.slug,
+            sectionSlug: section.slug,
+            userSlug: creator.slug,
+            fromDate: payload.fromDate,
+            toDate: payload.toDate,
             topic: payload.topic,
-            subTopic: payload.subTopic || null,
-            introductionAids: payload.introductionAids || null,
-            introductionActivity: payload.introductionActivity || null,
-            learningObjective: payload.learningObjective || null,
-            numberOfPeriods: payload.numberOfPeriods,
+            subTopic:
+                payload.subTopic || null,
+            introductionAids:
+                payload.introductionAids ||
+                null,
+            introductionActivity:
+                payload.introductionActivity ||
+                null,
+            learningObjective:
+                payload.learningObjective ||
+                null,
+            numberOfPeriods:
+                lessons.length,
         },
 
         lessons,
     });
-
-    return formatWeeklyPlan(createdPlan);
 };
 
-// Get weekly plans
-export const getWeeklyPlansService = async ({
-    schoolSlug,
+export const getWeeklyPlansService = async (
     query,
-}) => {
-    if (!schoolSlug) {
-        throw new Error("School information not found");
-    }
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
 
     let sessionSlug;
-    let classSubjectSlug;
+    let boardSlug;
+    let classSlug;
     let sectionSlug;
 
     if (query.session) {
-        const session = await findWeeklyPlanSessionRepo(
-            schoolSlug,
-            query.session,
-        );
+        const session =
+            await findWeeklyPlanSessionByNameRepo(
+                schoolSlug,
+                query.session,
+            );
 
         if (!session) {
             return [];
@@ -250,39 +260,71 @@ export const getWeeklyPlansService = async ({
         sessionSlug = session.slug;
     }
 
-    if (query.classTitle && query.subject) {
-        if (!sessionSlug) {
-            throw new Error("Session is required with class and subject filters");
+    if (query.board) {
+        const board =
+            await findWeeklyPlanBoardByTitleRepo(
+                schoolSlug,
+                query.board,
+            );
+
+        if (!board) {
+            return [];
         }
 
-        const classData = await findWeeklyPlanClassRepo({
-            schoolSlug,
-            sessionSlug,
-            classTitle: query.classTitle,
-        });
+        boardSlug = board.slug;
+    }
+
+    if (
+        query.classTitle &&
+        sessionSlug &&
+        boardSlug
+    ) {
+        const classData =
+            await findWeeklyPlanClassByTitleRepo({
+                schoolSlug,
+                sessionSlug,
+                boardSlug,
+                classTitle:
+                    query.classTitle,
+            });
 
         if (!classData) {
             return [];
         }
 
-        const classSubject = await findWeeklyPlanClassSubjectRepo({
-            schoolSlug,
-            classSlug: classData.slug,
-            subjectName: query.subject,
-        });
+        classSlug = classData.slug;
+    }
 
-        if (!classSubject) {
+    if (
+        query.sectionTitle &&
+        sessionSlug &&
+        boardSlug &&
+        classSlug
+    ) {
+        const classMapping =
+            await findWeeklyPlanClassMappingRepo({
+                schoolSlug,
+                sessionSlug,
+                boardSlug,
+                classSlug,
+            });
+
+        if (!classMapping) {
             return [];
         }
 
-        classSubjectSlug = classSubject.slug;
-    }
+        const sectionSlugs =
+            normalizeSectionSlugs(
+                classMapping.sectionSlugs,
+            );
 
-    if (query.section) {
-        const section = await findWeeklyPlanSectionRepo({
-            schoolSlug,
-            sectionTitle: query.section,
-        });
+        const section =
+            await findWeeklyPlanSectionByTitleRepo({
+                schoolSlug,
+                sectionTitle:
+                    query.sectionTitle,
+                sectionSlugs,
+            });
 
         if (!section) {
             return [];
@@ -291,192 +333,350 @@ export const getWeeklyPlansService = async ({
         sectionSlug = section.slug;
     }
 
-    const plans = await getWeeklyPlansRepo({
+    let fromDate;
+    let toDate;
+
+    if (query.fromDate) {
+        fromDate = new Date(
+            `${query.fromDate}T00:00:00.000Z`,
+        );
+
+        if (
+            Number.isNaN(
+                fromDate.getTime(),
+            )
+        ) {
+            throw new Error(
+                "Invalid from date",
+            );
+        }
+    }
+
+    if (query.toDate) {
+        toDate = new Date(
+            `${query.toDate}T23:59:59.999Z`,
+        );
+
+        if (
+            Number.isNaN(
+                toDate.getTime(),
+            )
+        ) {
+            throw new Error(
+                "Invalid to date",
+            );
+        }
+    }
+
+    return getWeeklyPlansRepo({
         schoolSlug,
         sessionSlug,
-        classSubjectSlug,
+        boardSlug,
+        classSlug,
         sectionSlug,
-        teacherSlug: query.teacherSlug,
-        status: query.status || "active",
-        fromDate: query.fromDate,
-        toDate: query.toDate,
-    });
-
-    return plans.map(formatWeeklyPlan);
-};
-
-// Get weekly plan by slug
-export const getWeeklyPlanBySlugService = async ({
-    slug,
-    schoolSlug,
-}) => {
-    if (!schoolSlug) {
-        throw new Error("School information not found");
-    }
-
-    const plan = await getWeeklyPlanBySlugRepo(slug, schoolSlug);
-
-    if (!plan) {
-        throw new Error("Weekly plan not found");
-    }
-
-    return formatWeeklyPlan(plan);
-};
-
-// Update weekly plan
-export const updateWeeklyPlanService = async ({
-    slug,
-    schoolSlug,
-    userSlug,
-    payload,
-}) => {
-    if (!schoolSlug) {
-        throw new Error("School information not found");
-    }
-
-    const existingPlan = await getWeeklyPlanBySlugRepo(slug, schoolSlug);
-
-    if (!existingPlan) {
-        throw new Error("Weekly plan not found");
-    }
-
-    const sessionName = payload.session || existingPlan.session?.name;
-    const classTitle =
-        payload.classTitle ||
-        existingPlan.classSubject?.class?.classTitle;
-    const subjectName =
-        payload.subject ||
-        existingPlan.classSubject?.subject?.subjectName;
-    const sectionTitle = payload.section || existingPlan.section?.sectionTitle;
-
-    const relations = await resolveWeeklyPlanRelations({
-        schoolSlug,
-        sessionName,
-        classTitle,
-        subjectName,
-        sectionTitle,
-        teacherSlug:
-            payload.teacherSlug !== undefined
-                ? payload.teacherSlug
-                : existingPlan.teacherSlug,
-    });
-
-    const fromDate = payload.fromDate
-        ? new Date(payload.fromDate)
-        : existingPlan.fromDate;
-
-    const toDate = payload.toDate
-        ? new Date(payload.toDate)
-        : existingPlan.toDate;
-
-    if (toDate < fromDate) {
-        throw new Error("To date cannot be before from date");
-    }
-
-    const finalTeacherSlug = relations.teacher?.slug || null;
-
-    const duplicate = await findDuplicateWeeklyPlanRepo({
-        teacherSlug: finalTeacherSlug,
-        classSubjectSlug: relations.classSubject.slug,
-        sectionSlug: relations.section.slug,
+        status:
+            query.status || "active",
         fromDate,
         toDate,
-        excludeSlug: slug,
+        search:
+            query.search?.trim() ||
+            undefined,
     });
+};
 
-    if (duplicate) {
+export const getWeeklyPlanBySlugService = async (
+    slug,
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
+
+    const weeklyPlan =
+        await getWeeklyPlanBySlugRepo(
+            slug,
+            schoolSlug,
+        );
+
+    if (!weeklyPlan) {
         throw new Error(
-            "Weekly plan already exists for this teacher, subject, section and date range",
+            "Weekly plan not found",
         );
     }
 
-    const weeklyPlanData = {
-        sessionSlug: relations.session.slug,
-        classSubjectSlug: relations.classSubject.slug,
-        sectionSlug: relations.section.slug,
-        teacherSlug: finalTeacherSlug,
-        userSlug: userSlug || existingPlan.userSlug,
-        fromDate,
-        toDate,
-        topic: payload.topic ?? existingPlan.topic,
-        subTopic:
-            payload.subTopic !== undefined
-                ? payload.subTopic || null
-                : existingPlan.subTopic,
-        introductionAids:
-            payload.introductionAids !== undefined
-                ? payload.introductionAids || null
-                : existingPlan.introductionAids,
-        introductionActivity:
-            payload.introductionActivity !== undefined
-                ? payload.introductionActivity || null
-                : existingPlan.introductionActivity,
-        learningObjective:
-            payload.learningObjective !== undefined
-                ? payload.learningObjective || null
-                : existingPlan.learningObjective,
-        numberOfPeriods:
-            payload.numberOfPeriods ?? existingPlan.numberOfPeriods,
-    };
+    return weeklyPlan;
+};
 
-    const lessons = payload.lessons
-        ? payload.lessons.map((lesson, index) => ({
-            slug: randomUUID(),
+export const updateWeeklyPlanService = async (
+    slug,
+    payload,
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
+
+    const existingWeeklyPlan =
+        await getWeeklyPlanForUpdateRepo(
+            slug,
             schoolSlug,
-            lessonOrder: lesson.lessonOrder ?? index + 1,
-            day: lesson.day,
-            teachingMethodology: lesson.teachingMethodology,
-            studentActivities: lesson.studentActivities,
-            assessment: lesson.assessment,
-        }))
-        : undefined;
+        );
 
-    const updatedPlan = await updateWeeklyPlanRepo({
-        slug,
+    if (!existingWeeklyPlan) {
+        throw new Error(
+            "Weekly plan not found",
+        );
+    }
+
+    if (!existingWeeklyPlan.isActive) {
+        throw new Error(
+            "Inactive weekly plan cannot be updated",
+        );
+    }
+
+    const {
+        session,
+        board,
+        classData,
+        section,
+    } = await resolveWeeklyPlanRelations({
         schoolSlug,
-        weeklyPlanData,
-        lessons,
+        sessionName: payload.session,
+        boardTitle: payload.board,
+        classTitle: payload.classTitle,
+        sectionTitle:
+            payload.sectionTitle,
     });
 
-    return formatWeeklyPlan(updatedPlan);
+    const duplicate =
+        await findDuplicateWeeklyPlanRepo({
+            schoolSlug,
+            sessionSlug: session.slug,
+            boardSlug: board.slug,
+            classSlug: classData.slug,
+            sectionSlug: section.slug,
+            fromDate: payload.fromDate,
+            toDate: payload.toDate,
+            excludeSlug: slug,
+        });
+
+    if (duplicate) {
+        throw new Error(
+            "Weekly plan already exists for selected class, section and date range",
+        );
+    }
+
+    const existingLessonSlugs =
+        new Set(
+            existingWeeklyPlan.lessons.map(
+                (lesson) => lesson.slug,
+            ),
+        );
+
+    const duplicateLessonSlugs =
+        payload.lessons
+            .filter(
+                (lesson) => lesson.slug,
+            )
+            .map(
+                (lesson) => lesson.slug,
+            );
+
+    if (
+        new Set(duplicateLessonSlugs)
+            .size !==
+        duplicateLessonSlugs.length
+    ) {
+        throw new Error(
+            "Duplicate lesson found in request",
+        );
+    }
+
+    for (const lesson of payload.lessons) {
+        if (
+            lesson.slug &&
+            !existingLessonSlugs.has(
+                lesson.slug,
+            )
+        ) {
+            throw new Error(
+                "Invalid lesson selected",
+            );
+        }
+    }
+
+    const lessons =
+        payload.lessons.map(
+            (lesson, index) => ({
+                slug: lesson.slug,
+                generatedSlug:
+                    lesson.slug
+                        ? undefined
+                        : randomUUID(),
+                lessonOrder:
+                    lesson.lessonOrder ||
+                    index + 1,
+                day: lesson.day,
+                teachingMethodology:
+                    lesson.teachingMethodology,
+                studentActivities:
+                    lesson.studentActivities,
+                assessment:
+                    lesson.assessment,
+            }),
+        );
+
+    return updateWeeklyPlanRepo({
+        slug,
+        schoolSlug,
+
+        weeklyPlanData: {
+            sessionSlug: session.slug,
+            boardSlug: board.slug,
+            classSlug: classData.slug,
+            sectionSlug: section.slug,
+            fromDate: payload.fromDate,
+            toDate: payload.toDate,
+            topic: payload.topic,
+            subTopic:
+                payload.subTopic || null,
+            introductionAids:
+                payload.introductionAids ||
+                null,
+            introductionActivity:
+                payload.introductionActivity ||
+                null,
+            learningObjective:
+                payload.learningObjective ||
+                null,
+            numberOfPeriods:
+                lessons.length,
+        },
+
+        lessons,
+    });
 };
 
-// Delete weekly plan
-export const deleteWeeklyPlanService = async ({
+export const deleteWeeklyPlanService = async (
     slug,
-    schoolSlug,
-}) => {
-    const existingPlan = await getWeeklyPlanBySlugRepo(slug, schoolSlug);
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
 
-    if (!existingPlan) {
-        throw new Error("Weekly plan not found");
+    const weeklyPlan =
+        await getWeeklyPlanBySlugRepo(
+            slug,
+            schoolSlug,
+        );
+
+    if (!weeklyPlan) {
+        throw new Error(
+            "Weekly plan not found",
+        );
     }
 
-    if (!existingPlan.isActive) {
-        throw new Error("Weekly plan is already inactive");
+    if (!weeklyPlan.isActive) {
+        throw new Error(
+            "Weekly plan is already deleted",
+        );
     }
 
-    const deletedPlan = await deleteWeeklyPlanRepo(slug, schoolSlug);
-
-    return formatWeeklyPlan(deletedPlan);
+    return deleteWeeklyPlanRepo({
+        slug,
+        schoolSlug,
+    });
 };
 
-// Restore weekly plan
-export const restoreWeeklyPlanService = async ({
+export const restoreWeeklyPlanService = async (
     slug,
-    schoolSlug,
-}) => {
-    const existingPlan = await getWeeklyPlanBySlugRepo(slug, schoolSlug);
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
 
-    if (!existingPlan) {
-        throw new Error("Weekly plan not found");
+    const weeklyPlan =
+        await getWeeklyPlanBySlugRepo(
+            slug,
+            schoolSlug,
+        );
+
+    if (!weeklyPlan) {
+        throw new Error(
+            "Weekly plan not found",
+        );
     }
 
-    if (existingPlan.isActive) {
-        throw new Error("Weekly plan is already active");
+    if (weeklyPlan.isActive) {
+        throw new Error(
+            "Weekly plan is already active",
+        );
     }
 
-    const restoredPlan = await restoreWeeklyPlanRepo(slug, schoolSlug);
+    return restoreWeeklyPlanRepo({
+        slug,
+        schoolSlug,
+    });
+};
 
-    return formatWeeklyPlan(restoredPlan);
+export const deleteWeeklyPlanLessonService = async (
+    weeklyPlanSlug,
+    lessonSlug,
+    user,
+) => {
+    const schoolSlug =
+        getSchoolSlug(user);
+
+    const weeklyPlan =
+        await getWeeklyPlanBySlugRepo(
+            weeklyPlanSlug,
+            schoolSlug,
+        );
+
+    if (!weeklyPlan) {
+        throw new Error(
+            "Weekly plan not found",
+        );
+    }
+
+    if (!weeklyPlan.isActive) {
+        throw new Error(
+            "Lesson cannot be deleted from inactive weekly plan",
+        );
+    }
+
+    const lesson =
+        await getWeeklyPlanLessonBySlugRepo({
+            weeklyPlanSlug,
+            lessonSlug,
+            schoolSlug,
+        });
+
+    if (!lesson) {
+        throw new Error(
+            "Weekly plan lesson not found",
+        );
+    }
+
+    if (!lesson.isActive) {
+        throw new Error(
+            "Weekly plan lesson is already deleted",
+        );
+    }
+
+    const activeLessons =
+        weeklyPlan.lessons?.filter(
+            (item) =>
+                item.isActive !== false,
+        ) || [];
+
+    if (activeLessons.length <= 1) {
+        throw new Error(
+            "Weekly plan must contain at least one active lesson",
+        );
+    }
+
+    return deleteWeeklyPlanLessonRepo({
+        weeklyPlanSlug,
+        lessonSlug,
+        schoolSlug,
+    });
 };

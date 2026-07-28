@@ -636,7 +636,8 @@ export const getDailyAttendanceReportMappingsRepo = async ({
     schoolSlug,
     session,
     board,
-    attendanceDate,
+    startDate,
+    nextDate,
 }) => {
     return prisma.studentAcademicRollSectionStreamMapping.findMany({
         where: {
@@ -703,7 +704,11 @@ export const getDailyAttendanceReportMappingsRepo = async ({
 
             studentAttendanceDays: {
                 where: {
-                    attendanceDate,
+                    attendanceDate: {
+                        gte: startDate,
+                        lt: nextDate,
+                    },
+
                     status: "active",
                     isActive: true,
                     deletedAt: null,
@@ -896,6 +901,12 @@ export const getStudentDayWiseReportRepo = async ({
     startDate,
     endDate,
 }) => {
+    if (!academicMappingSlug) {
+        throw new Error(
+            "Academic mapping slug is required in repository",
+        );
+    }
+
     return prisma.studentAcademicRollSectionStreamMapping.findFirst({
         where: {
             slug: academicMappingSlug,
@@ -983,6 +994,13 @@ export const getMonthlyAttendanceByMappingRepo = async ({
     year,
     month,
 }) => {
+
+    if (!academicMappingSlug) {
+        throw new Error(
+            "Academic mapping slug is required",
+        );
+    }
+
     return tx.studentAttendance.findFirst({
         where: {
             schoolSlug,
@@ -995,7 +1013,21 @@ export const getMonthlyAttendanceByMappingRepo = async ({
             deletedAt: null,
         },
 
-        include: studentAttendanceInclude,
+        include: {
+            ...studentAttendanceInclude,
+
+            attendanceDays: {
+                where: {
+                    status: "active",
+                    isActive: true,
+                    deletedAt: null,
+                },
+
+                orderBy: {
+                    attendanceDate: "asc",
+                },
+            },
+        },
     });
 };
 

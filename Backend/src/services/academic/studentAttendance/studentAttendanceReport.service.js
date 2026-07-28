@@ -5,6 +5,7 @@ import {
     getMonthlyAttendanceByMappingRepo
 } from "../../../repositories/academic/studentAttendance/studentAttendanceRepository.js";
 
+
 const createServiceError = (message, statusCode = 400) => {
     const error = new Error(message);
 
@@ -180,25 +181,48 @@ export const getDailyAttendanceReportService = async ({
     );
 
     if (Number.isNaN(parsedAttendanceDate.getTime())) {
-        throw createServiceError("Invalid attendance date");
+        throw createServiceError(
+            "Invalid attendance date",
+        );
     }
+
+    /*
+     * Selected date ka UTC start.
+     * Example:
+     * startDate = 2026-07-24T00:00:00.000Z
+     * nextDate  = 2026-07-25T00:00:00.000Z
+     */
+    const startDate = parsedAttendanceDate;
+
+    const nextDate = new Date(startDate);
+
+    nextDate.setUTCDate(
+        nextDate.getUTCDate() + 1,
+    );
 
     const mappings =
         await getDailyAttendanceReportMappingsRepo({
             schoolSlug: user.schoolSlug,
             session,
             board,
-            attendanceDate: parsedAttendanceDate,
+            startDate,
+            nextDate,
         });
 
     const groupedRecords = new Map();
 
     mappings.forEach((mapping) => {
-        const classSlug = mapping.class?.slug || "no-class";
-        const sectionSlug = mapping.section?.slug || "no-section";
-        const streamSlug = mapping.stream?.slug || "no-stream";
+        const classSlug =
+            mapping.class?.slug || "no-class";
 
-        const groupKey = `${classSlug}:${sectionSlug}:${streamSlug}`;
+        const sectionSlug =
+            mapping.section?.slug || "no-section";
+
+        const streamSlug =
+            mapping.stream?.slug || "no-stream";
+
+        const groupKey =
+            `${classSlug}:${sectionSlug}:${streamSlug}`;
 
         if (!groupedRecords.has(groupKey)) {
             groupedRecords.set(groupKey, {
@@ -217,15 +241,23 @@ export const getDailyAttendanceReportService = async ({
             });
         }
 
-        const group = groupedRecords.get(groupKey);
+        const group =
+            groupedRecords.get(groupKey);
 
         group.enrolled += 1;
 
-        const attendanceDay = mapping.attendanceDays?.[0];
+        /*
+         * Repository relation ka exact naam:
+         * studentAttendanceDays
+         */
+        const attendanceDay =
+            mapping.studentAttendanceDays?.[0] ||
+            null;
 
-        const attendanceStatus = normalizeAttendanceStatus(
-            attendanceDay?.attendanceStatus,
-        );
+        const attendanceStatus =
+            normalizeAttendanceStatus(
+                attendanceDay?.attendanceStatus,
+            );
 
         switch (attendanceStatus) {
             case "PRESENT":
@@ -258,7 +290,9 @@ export const getDailyAttendanceReportService = async ({
         }
     });
 
-    const rows = Array.from(groupedRecords.values());
+    const rows = Array.from(
+        groupedRecords.values(),
+    );
 
     const totals = rows.reduce(
         (result, row) => {
@@ -269,7 +303,8 @@ export const getDailyAttendanceReportService = async ({
             result.halfDay += row.halfDay;
             result.holiday += row.holiday;
             result.sunday += row.sunday;
-            result.notMarked += row.notMarked;
+            result.notMarked +=
+                row.notMarked;
 
             return result;
         },
@@ -287,10 +322,15 @@ export const getDailyAttendanceReportService = async ({
 
     return {
         attendanceDate,
-        dayName: parsedAttendanceDate.toLocaleDateString("en-US", {
-            weekday: "long",
-            timeZone: "UTC",
-        }),
+
+        dayName:
+            parsedAttendanceDate.toLocaleDateString(
+                "en-US",
+                {
+                    weekday: "long",
+                    timeZone: "UTC",
+                },
+            ),
 
         session,
         board,
@@ -518,97 +558,101 @@ export const getMonthlyAttendanceReportService = async ({
 
 
 export const getStudentDayWiseReportService = async ({
-    params,
-    query,
     user,
+    academicMappingSlug,
+    query,
 }) => {
-    const { academicMappingSlug } = params;
-    const { year, month } = query;
+    const year = Number(query.year);
+    const month = Number(query.month);
 
-    const {
-        parsedYear,
-        parsedMonth,
-        startDate,
-        endDate,
-    } = getMonthDateRange({
-        year,
-        month,
-    });
-
-    const mapping = await getStudentDayWiseReportRepo({
-        schoolSlug: user.schoolSlug,
-        academicMappingSlug,
-        startDate,
-        endDate,
-    });
-
-    if (!mapping) {
-        throw createServiceError(
-            "Student academic mapping not found",
-            404,
+    if (!academicMappingSlug) {
+        throw new Error(
+            "Academic mapping slug is required",
         );
     }
 
-    const attendanceDayMap = new Map(
-        mapping.attendanceDays.map((attendanceDay) => [
-            getDateKey(attendanceDay.attendanceDate),
-            attendanceDay,
-        ]),
+    if (
+        !Number.isInteger(year) ||
+        !Number.isInteger(month) ||
+        month < 1 ||
+        month > 12
+    ) {
+        throw new Error(
+            "Valid year and month are required",
+        );
+    }
+
+    const startDate = new Date(
+        Date.UTC(year, month - 1, 1),
     );
 
-    const days = getAllDatesOfMonth({
-        year: parsedYear,
-        month: parsedMonth,
-    }).map((date) => {
-        const dateKey = getDateKey(date);
+    const endDate = new Date(
+        Date.UTC(
+            year,
+            month,
+            0,
+            23,
+            59,
+            59,
+            999,
+        ),
+    );
 
-        const savedAttendance = attendanceDayMap.get(dateKey);
+    // console.log("SERVICE MAPPING SLUG:", academicMappingSlug);
 
-        const isSunday = date.getUTCDay() === 0;
+    const mapping =
+        await getStudentDayWiseReportRepo({
+            schoolSlug: user.schoolSlug,
+            academicMappingSlug,
+            startDate,
+            endDate,
+        });
 
-        let attendanceStatus = normalizeAttendanceStatus(
-            savedAttendance?.attendanceStatus,
+    if (!mapping) {
+        throw new Error(
+            "Student academic mapping not found",
         );
+    }
 
-        if (!savedAttendance && isSunday) {
-            attendanceStatus = "SUNDAY";
-        }
+    const monthlyAttendance =
+        await getMonthlyAttendanceByMappingRepo({
+            schoolSlug: user.schoolSlug,
+            academicMappingSlug,
+            year,
+            month,
+        });
 
-        return {
-            date: dateKey,
-
-            day: date.toLocaleDateString("en-US", {
-                weekday: "long",
-                timeZone: "UTC",
-            }),
-
-            attendanceStatus,
-
-            daySlug: savedAttendance?.slug || null,
-            isLocked: Boolean(savedAttendance?.isLocked),
-            markedAt: savedAttendance?.markedAt || null,
-            markedBy: savedAttendance?.markedBy || null,
-        };
-    });
+    const attendanceDays =
+        mapping.studentAttendanceDays || [];
 
     return {
-        year: parsedYear,
-        month: parsedMonth,
+        year,
+        month,
 
         academicMappingSlug: mapping.slug,
-
-        rollNumberPrefix: mapping.rollNumberPrefix,
-        rollNumber: mapping.rollNumber,
+        rollNumberPrefix:
+            mapping.rollNumberPrefix || "",
+        rollNumber: mapping.rollNumber ?? null,
 
         student: mapping.student,
         class: mapping.class,
         section: mapping.section,
         stream: mapping.stream,
 
-        summary: calculateAttendanceSummary(
-            mapping.attendanceDays,
-        ),
+        attendance:
+            monthlyAttendance?.attendance || {},
 
-        days,
+        attendanceDays: attendanceDays.map(
+            (item) => ({
+                slug: item.slug,
+                attendanceDate:
+                    item.attendanceDate,
+                attendanceStatus:
+                    item.attendanceStatus,
+                isLocked: item.isLocked,
+                markedAt: item.markedAt,
+                markedBy: item.markedBy || null,
+            }),
+        ),
     };
 };

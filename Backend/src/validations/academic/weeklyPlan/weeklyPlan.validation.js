@@ -1,226 +1,141 @@
 import { z } from "zod";
 
-const requiredString = (message) =>
-    z
-        .string({
-            required_error: message,
-            invalid_type_error: message,
-        })
-        .trim()
-        .min(1, message);
-
-const optionalString = z
+const optionalTextSchema = z
     .string()
     .trim()
-    .optional()
     .nullable()
-    .transform((value) => {
-        if (!value) return null;
+    .optional()
+    .transform((value) => value || null);
 
-        return value;
-    });
+const optionalSlugSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .nullable()
+    .optional()
+    .transform((value) => value || null);
 
 const weeklyPlanLessonSchema = z.object({
     lessonOrder: z.coerce
-        .number({
-            required_error: "Lesson order is required",
-            invalid_type_error: "Lesson order must be a number",
-        })
-        .int("Lesson order must be an integer")
-        .positive("Lesson order must be greater than zero"),
+        .number()
+        .int()
+        .positive()
+        .optional(),
 
-    day: requiredString("Day is required"),
+    day: z
+        .string()
+        .trim()
+        .min(1, "Lesson day is required"),
 
-    teachingMethodology: requiredString(
-        "Teaching methodology is required",
-    ),
+    teachingMethodology: z
+        .string()
+        .trim()
+        .min(1, "Teaching methodology is required"),
 
-    studentActivities: requiredString(
-        "Student activities are required",
-    ),
+    studentActivities: z
+        .string()
+        .trim()
+        .min(1, "Student activities are required"),
 
-    assessment: requiredString("Assessment is required"),
+    assessment: z
+        .string()
+        .trim()
+        .min(1, "Assessment is required"),
 });
 
-const weeklyPlanBaseSchema = z.object({
-    session: requiredString("Session is required"),
+export const createWeeklyPlanSchema = z
+    .object({
+        session: z
+            .string()
+            .trim()
+            .min(1, "Session is required"),
 
-    board: requiredString("Board is required"),
+        board: z
+            .string()
+            .trim()
+            .min(1, "Board is required"),
 
-    classSlug: requiredString("Class slug is required"),
+        classTitle: z
+            .string()
+            .trim()
+            .min(1, "Class is required"),
 
-    classTitle: requiredString("Class is required"),
+        // sectionTitle: z
+        //     .string()
+        //     .trim()
+        //     .min(1, "Section is required"),
 
-    sectionSlug: requiredString("Section slug is required"),
+        // classSubjectSlug: z
+        //     .string()
+        //     .trim()
+        //     .min(1, "Class subject is required")
+        //     .max(50),
 
-    section: requiredString("Section is required"),
+        teacherSlug: optionalSlugSchema,
 
-    classSubjectSlug: requiredString(
-        "Class subject slug is required",
-    ),
+        fromDate: z.coerce.date({
+            required_error: "From date is required",
+        }),
 
-    subject: requiredString("Subject is required"),
+        toDate: z.coerce.date({
+            required_error: "To date is required",
+        }),
 
-    teacherSlug: optionalString,
+        topic: z
+            .string()
+            .trim()
+            .min(1, "Topic is required"),
 
-    fromDate: z.coerce.date({
-        required_error: "From date is required",
-        invalid_type_error: "Invalid from date",
-    }),
+        subTopic: optionalTextSchema,
 
-    toDate: z.coerce.date({
-        required_error: "To date is required",
-        invalid_type_error: "Invalid to date",
-    }),
+        introductionAids: optionalTextSchema,
 
-    topic: requiredString("Topic is required"),
+        introductionActivity: optionalTextSchema,
 
-    subTopic: optionalString,
+        learningObjective: optionalTextSchema,
 
-    introductionAids: optionalString,
+        numberOfPeriods: z.coerce
+            .number()
+            .int()
+            .positive("Number of periods must be greater than zero"),
 
-    introductionActivity: optionalString,
+        lessons: z
+            .array(weeklyPlanLessonSchema)
+            .min(1, "At least one lesson is required"),
+    })
+    .superRefine((data, ctx) => {
+        if (data.fromDate > data.toDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["toDate"],
+                message: "To date must be greater than or equal to from date",
+            });
+        }
 
-    learningObjective: optionalString,
+        if (data.numberOfPeriods !== data.lessons.length) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["numberOfPeriods"],
+                message: "Number of periods must match total lessons",
+            });
+        }
 
-    numberOfPeriods: z.coerce
-        .number({
-            required_error: "Number of periods is required",
-            invalid_type_error:
-                "Number of periods must be a number",
-        })
-        .int("Number of periods must be an integer")
-        .positive(
-            "Number of periods must be greater than zero",
-        ),
-
-    lessons: z
-        .array(weeklyPlanLessonSchema)
-        .min(1, "At least one lesson is required"),
-});
-
-const validateWeeklyPlanRelations = (data, context) => {
-    if (
-        data.fromDate &&
-        data.toDate &&
-        data.toDate < data.fromDate
-    ) {
-        context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["toDate"],
-            message: "To date cannot be before from date",
-        });
-    }
-
-    if (
-        data.lessons &&
-        data.numberOfPeriods &&
-        data.lessons.length > data.numberOfPeriods
-    ) {
-        context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["lessons"],
-            message:
-                "Lessons cannot be greater than number of periods",
-        });
-    }
-
-    if (data.lessons) {
-        const lessonOrders = data.lessons.map(
-            (lesson) => lesson.lessonOrder,
-        );
-
-        const uniqueLessonOrders = new Set(lessonOrders);
+        const lessonOrders = data.lessons
+            .map((lesson) => lesson.lessonOrder)
+            .filter(Boolean);
 
         if (
             lessonOrders.length !==
-            uniqueLessonOrders.size
+            new Set(lessonOrders).size
         ) {
-            context.addIssue({
+            ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ["lessons"],
                 message: "Lesson order must be unique",
             });
         }
-    }
-};
+    });
 
-export const createWeeklyPlanSchema =
-    weeklyPlanBaseSchema.superRefine(
-        validateWeeklyPlanRelations,
-    );
-
-export const updateWeeklyPlanSchema = z
-    .object({
-        session: requiredString(
-            "Session is required",
-        ).optional(),
-
-        board: requiredString(
-            "Board is required",
-        ).optional(),
-
-        classSlug: requiredString(
-            "Class slug is required",
-        ).optional(),
-
-        classTitle: requiredString(
-            "Class is required",
-        ).optional(),
-
-        sectionSlug: requiredString(
-            "Section slug is required",
-        ).optional(),
-
-        section: requiredString(
-            "Section is required",
-        ).optional(),
-
-        classSubjectSlug: requiredString(
-            "Class subject slug is required",
-        ).optional(),
-
-        subject: requiredString(
-            "Subject is required",
-        ).optional(),
-
-        teacherSlug: optionalString,
-
-        fromDate: z.coerce.date().optional(),
-
-        toDate: z.coerce.date().optional(),
-
-        topic: requiredString(
-            "Topic is required",
-        ).optional(),
-
-        subTopic: optionalString,
-
-        introductionAids: optionalString,
-
-        introductionActivity: optionalString,
-
-        learningObjective: optionalString,
-
-        numberOfPeriods: z.coerce
-            .number({
-                invalid_type_error:
-                    "Number of periods must be a number",
-            })
-            .int(
-                "Number of periods must be an integer",
-            )
-            .positive(
-                "Number of periods must be greater than zero",
-            )
-            .optional(),
-
-        lessons: z
-            .array(weeklyPlanLessonSchema)
-            .min(
-                1,
-                "At least one lesson is required",
-            )
-            .optional(),
-    })
-    .superRefine(validateWeeklyPlanRelations);
+export const updateWeeklyPlanSchema =
+    createWeeklyPlanSchema;

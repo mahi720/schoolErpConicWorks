@@ -1,22 +1,6 @@
 import express from "express";
 
 import { authMiddleware } from "../../../middleware/auth/auth.middleware.js";
-
-import {
-    getWeeklyPlanClassesController,
-    getWeeklyPlanSectionsController,
-    getWeeklyPlanSubjectsController,
-} from "../../../controllers/academic/weeklyPlan/weeklyPlanOptions.controller.js";
-
-import {
-    createWeeklyPlanController,
-    deleteWeeklyPlanController,
-    getWeeklyPlanBySlugController,
-    getWeeklyPlansController,
-    restoreWeeklyPlanController,
-    updateWeeklyPlanController,
-} from "../../../controllers/academic/weeklyPlan/weeklyPlan.controller.js";
-
 import { validate } from "../../../middleware/validate/validate.middleware.js";
 
 import {
@@ -24,32 +8,19 @@ import {
     updateWeeklyPlanSchema,
 } from "../../../validations/academic/weeklyPlan/weeklyPlan.validation.js";
 
+import {
+    createWeeklyPlanController,
+    getWeeklyPlansController,
+    getWeeklyPlanBySlugController,
+    updateWeeklyPlanController,
+    deleteWeeklyPlanController,
+    restoreWeeklyPlanController,
+    deleteWeeklyPlanLessonController,
+} from "../../../controllers/academic/weeklyPlan/weeklyPlan.controller.js";
+
 const router = express.Router();
 
 router.use(authMiddleware);
-
-/* -------------------------------------------------------------------------- */
-/*                          WEEKLY PLAN DROPDOWN OPTIONS                       */
-/* -------------------------------------------------------------------------- */
-
-router.get(
-    "/options/classes",
-    getWeeklyPlanClassesController,
-);
-
-router.get(
-    "/options/sections",
-    getWeeklyPlanSectionsController,
-);
-
-router.get(
-    "/options/subjects",
-    getWeeklyPlanSubjectsController,
-);
-
-/* -------------------------------------------------------------------------- */
-/*                              WEEKLY PLAN CRUD                              */
-/* -------------------------------------------------------------------------- */
 
 router.post(
     "/",
@@ -60,6 +31,16 @@ router.post(
 router.get(
     "/",
     getWeeklyPlansController,
+);
+
+router.delete(
+    "/:weeklyPlanSlug/lessons/:lessonSlug",
+    deleteWeeklyPlanLessonController,
+);
+
+router.patch(
+    "/:slug/restore",
+    restoreWeeklyPlanController,
 );
 
 router.get(
@@ -76,11 +57,6 @@ router.patch(
 router.delete(
     "/:slug",
     deleteWeeklyPlanController,
-);
-
-router.patch(
-    "/:slug/restore",
-    restoreWeeklyPlanController,
 );
 
 export default router;

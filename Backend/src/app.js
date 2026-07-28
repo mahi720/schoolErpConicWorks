@@ -22,8 +22,10 @@ import paymentInfoRoutes from "./routes/master/paymentInfo/paymentInfo.routes.js
 import studentRoutes from "./routes/academic/addNewStudent/student.routes.js";
 import studentAcademicMappingRoutes from "./routes/academic/studentAcademicMapping/studentAcademicMapping.route.js";
 import academicCalendarRoutes from "./routes/academic/academicCalender/academicCalendar.routes.js";
-import weeklyPlanRoutes from "./routes/academic/weeklyPlan/weeklyPlan.routes.js";
 import studentAttendanceRoutes from "./routes/academic/studentAttendance/studentAttendance.routes.js";
+import studentPromotionRoutes from "./routes/academic/studentPromotion/studentPromotion.routes.js";
+import studentHealthManagementRoutes from "./routes/academic/studentHealthManagement/studentHealthManagement.routes.js";
+import weeklyPlanRoutes from "./routes/academic/weeklyPlan/weeklyPlan.routes.js";
 
 
 const app = express()
@@ -93,8 +95,10 @@ app.use("/api/payment-info", paymentInfoRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/student-academic-mappings", studentAcademicMappingRoutes,);
 app.use("/api/academic-calendars", academicCalendarRoutes);
-app.use("/api/weekly-plans", weeklyPlanRoutes);
 app.use("/api/student-attendances", studentAttendanceRoutes);
+app.use("/api/student-promotions", studentPromotionRoutes);
+app.use("/api/student-health-management", studentHealthManagementRoutes);
+app.use("/api/weekly-plans", weeklyPlanRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
