@@ -240,7 +240,7 @@ export default function AttendanceReport() {
           </p>
         </div>
 
-        <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="bg-gray-900 p-3 rounded-2xl border border-gray-800 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <select
             value={selectedSession}
             disabled={sessionLoading}
@@ -302,7 +302,7 @@ export default function AttendanceReport() {
       </div>
 
       {selectedClass && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <select
               value={selectedGender}
@@ -432,7 +432,7 @@ export default function AttendanceReport() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="py-16 text-center">
+                  <td colSpan={26} className="py-6 text-center">
                     <Loader2 className="w-8 h-8 mx-auto animate-spin text-indigo-400" />
 
                     <p className="mt-3 text-gray-400">
@@ -442,13 +442,13 @@ export default function AttendanceReport() {
                 </tr>
               ) : !reportFiltersReady ? (
                 <tr>
-                  <td colSpan={12} className="py-16 text-center text-gray-400">
+                  <td colSpan={20} className="py-6 text-center text-gray-400">
                     Select academic year, board, class and month.
                   </td>
                 </tr>
               ) : !students.length ? (
                 <tr>
-                  <td colSpan={12} className="py-16 text-center text-gray-400">
+                  <td colSpan={25} className="py-6 text-center text-gray-400">
                     No attendance report found.
                   </td>
                 </tr>

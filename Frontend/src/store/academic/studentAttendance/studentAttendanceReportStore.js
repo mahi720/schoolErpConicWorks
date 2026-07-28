@@ -16,6 +16,7 @@ export const useStudentAttendanceReportStore = create(
             try {
                 set({
                     loading: true,
+                    dailyReport: null,
                 });
 
                 const res =
@@ -29,14 +30,14 @@ export const useStudentAttendanceReportStore = create(
 
                 return true;
             } catch (error) {
+                toast.error(
+                    error?.response?.data?.message ||
+                    "Failed to fetch daily attendance report",
+                );
+
                 set({
                     dailyReport: null,
                 });
-
-                toast.error(
-                    error?.response?.data?.message ||
-                    "Failed to fetch daily report",
-                );
 
                 return false;
             } finally {

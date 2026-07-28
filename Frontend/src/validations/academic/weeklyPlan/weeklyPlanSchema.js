@@ -1,100 +1,163 @@
 import { z } from "zod";
 
-const requiredString = (message) =>
-    z
-        .string({
-            required_error: message,
-            invalid_type_error: message,
-        })
-        .trim()
-        .min(1, message);
-
-const optionalString = z
+const optionalTextSchema = z
     .string()
     .trim()
+    .max(
+        5000,
+        "Maximum 5000 characters are allowed",
+    )
     .optional()
-    .nullable();
+    .nullable()
+    .transform((value) => {
+        if (!value) {
+            return "";
+        }
 
-const weeklyPlanLessonSchema = z.object({
+        return value;
+    });
+
+export const weeklyPlanLessonSchema = z.object({
+    slug: z
+        .string()
+        .trim()
+        .max(50)
+        .optional()
+        .nullable(),
+
     lessonOrder: z.coerce
         .number({
-            required_error: "Lesson order is required",
-            invalid_type_error: "Lesson order must be a number",
+            invalid_type_error:
+                "Lesson order must be a number",
         })
-        .int("Lesson order must be an integer")
-        .positive("Lesson order must be greater than zero"),
+        .int(
+            "Lesson order must be an integer",
+        )
+        .positive(
+            "Lesson order must be greater than zero",
+        ),
 
-    day: requiredString("Day is required"),
+    day: z
+        .string()
+        .trim()
+        .min(1, "Day is required")
+        .max(
+            100,
+            "Day cannot exceed 100 characters",
+        ),
 
-    teachingMethodology: requiredString(
-        "Teaching methodology is required",
-    ),
+    teachingMethodology: z
+        .string()
+        .trim()
+        .min(
+            1,
+            "Teaching methodology is required",
+        )
+        .max(
+            5000,
+            "Teaching methodology cannot exceed 5000 characters",
+        ),
 
-    studentActivities: requiredString(
-        "Student activities are required",
-    ),
+    studentActivities: z
+        .string()
+        .trim()
+        .min(
+            1,
+            "Student activities are required",
+        )
+        .max(
+            5000,
+            "Student activities cannot exceed 5000 characters",
+        ),
 
-    assessment: requiredString("Assessment is required"),
+    assessment: z
+        .string()
+        .trim()
+        .min(
+            1,
+            "Assessment is required",
+        )
+        .max(
+            5000,
+            "Assessment cannot exceed 5000 characters",
+        ),
 });
 
 export const weeklyPlanSchema = z
     .object({
-        session: requiredString("Session is required"),
+        session: z
+            .string()
+            .trim()
+            .min(
+                1,
+                "Session is required",
+            ),
 
-        board: requiredString("Board is required"),
+        board: z
+            .string()
+            .trim()
+            .min(
+                1,
+                "Board is required",
+            ),
 
-        classSlug: requiredString("Class is required"),
+        classTitle: z
+            .string()
+            .trim()
+            .min(
+                1,
+                "Class is required",
+            ),
 
-        classTitle: requiredString("Class is required"),
+        // sectionTitle: z
+        //     .string()
+        //     .trim()
+        //     .min(
+        //         1,
+        //         "Section is required",
+        //     ),
 
-        sectionSlug: requiredString(
-            "Section is required",
-        ),
+        fromDate: z
+            .string()
+            .trim()
+            .min(
+                1,
+                "From date is required",
+            ),
 
-        section: requiredString("Section is required"),
+        toDate: z
+            .string()
+            .trim()
+            .min(
+                1,
+                "To date is required",
+            ),
 
-        classSubjectSlug: requiredString(
-            "Subject is required",
-        ),
+        topic: z
+            .string()
+            .trim()
+            .min(
+                1,
+                "Topic is required",
+            )
+            .max(
+                5000,
+                "Topic cannot exceed 5000 characters",
+            ),
 
-        subject: requiredString("Subject is required"),
+        subTopic: optionalTextSchema,
 
-        teacherSlug: optionalString,
+        introductionAids:
+            optionalTextSchema,
 
-        fromDate: requiredString(
-            "From date is required",
-        ).refine(
-            (value) =>
-                !Number.isNaN(
-                    new Date(value).getTime(),
-                ),
-            "Invalid from date",
-        ),
+        introductionActivity:
+            optionalTextSchema,
 
-        toDate: requiredString(
-            "To date is required",
-        ).refine(
-            (value) =>
-                !Number.isNaN(
-                    new Date(value).getTime(),
-                ),
-            "Invalid to date",
-        ),
-
-        topic: requiredString("Topic is required"),
-
-        subTopic: optionalString,
-
-        introductionAids: optionalString,
-
-        introductionActivity: optionalString,
-
-        learningObjective: optionalString,
+        learningObjective:
+            optionalTextSchema,
 
         numberOfPeriods: z.coerce
             .number({
-                required_error:
-                    "Number of periods is required",
                 invalid_type_error:
                     "Number of periods must be a number",
             })
@@ -106,50 +169,98 @@ export const weeklyPlanSchema = z
             ),
 
         lessons: z
-            .array(weeklyPlanLessonSchema)
+            .array(
+                weeklyPlanLessonSchema,
+            )
             .min(
                 1,
                 "At least one lesson is required",
             ),
     })
-    .superRefine((data, context) => {
-        const fromDate = new Date(data.fromDate);
-        const toDate = new Date(data.toDate);
+    .superRefine((data, ctx) => {
+        const fromDate = new Date(
+            `${data.fromDate}T00:00:00`,
+        );
 
-        if (toDate < fromDate) {
-            context.addIssue({
+        const toDate = new Date(
+            `${data.toDate}T00:00:00`,
+        );
+
+        if (
+            Number.isNaN(
+                fromDate.getTime(),
+            )
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["fromDate"],
+                message:
+                    "Invalid from date",
+            });
+        }
+
+        if (
+            Number.isNaN(
+                toDate.getTime(),
+            )
+        ) {
+            ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ["toDate"],
                 message:
-                    "To date cannot be before from date",
+                    "Invalid to date",
             });
         }
 
         if (
-            data.lessons.length >
-            data.numberOfPeriods
+            !Number.isNaN(
+                fromDate.getTime(),
+            ) &&
+            !Number.isNaN(
+                toDate.getTime(),
+            ) &&
+            fromDate > toDate
         ) {
-            context.addIssue({
+            ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ["lessons"],
+                path: ["toDate"],
                 message:
-                    "Lessons cannot be greater than number of periods",
+                    "To date must be greater than or equal to from date",
             });
         }
 
-        const lessonOrders = data.lessons.map(
-            (lesson) => lesson.lessonOrder,
-        );
+        if (
+            Number(data.numberOfPeriods) !==
+            data.lessons.length
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: [
+                    "numberOfPeriods",
+                ],
+                message:
+                    "Number of periods must match total lessons",
+            });
+        }
 
-        const uniqueLessonOrders = new Set(
-            lessonOrders,
-        );
+        const lessonOrders =
+            data.lessons.map(
+                (lesson) =>
+                    Number(
+                        lesson.lessonOrder,
+                    ),
+            );
+
+        const uniqueLessonOrders =
+            new Set(
+                lessonOrders,
+            );
 
         if (
-            lessonOrders.length !==
-            uniqueLessonOrders.size
+            uniqueLessonOrders.size !==
+            lessonOrders.length
         ) {
-            context.addIssue({
+            ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ["lessons"],
                 message:
@@ -158,71 +269,67 @@ export const weeklyPlanSchema = z
         }
     });
 
-export const weeklyPlanDefaultValues = {
-    session: "",
-    board: "",
+export const weeklyPlanFilterSchema = z
+    .object({
+        fromDate: z
+            .string()
+            .optional(),
 
-    classSlug: "",
-    classTitle: "",
+        toDate: z
+            .string()
+            .optional(),
 
-    sectionSlug: "",
-    section: "",
+        session: z
+            .string()
+            .optional(),
 
-    classSubjectSlug: "",
-    subject: "",
+        board: z
+            .string()
+            .optional(),
 
-    teacherSlug: "",
+        classTitle: z
+            .string()
+            .optional(),
 
-    fromDate: "",
-    toDate: "",
+        sectionTitle: z
+            .string()
+            .optional(),
 
-    topic: "",
-    subTopic: "",
+        status: z
+            .enum([
+                "active",
+                "inactive",
+            ])
+            .optional(),
 
-    introductionAids: "",
-    introductionActivity: "",
-    learningObjective: "",
+        search: z
+            .string()
+            .trim()
+            .optional(),
+    })
+    .superRefine((data, ctx) => {
+        if (
+            data.fromDate &&
+            data.toDate
+        ) {
+            const fromDate =
+                new Date(
+                    `${data.fromDate}T00:00:00`,
+                );
 
-    numberOfPeriods: "",
+            const toDate =
+                new Date(
+                    `${data.toDate}T00:00:00`,
+                );
 
-    lessons: [
-        {
-            lessonOrder: 1,
-            day: "",
-            teachingMethodology: "",
-            studentActivities: "",
-            assessment: "",
-        },
-    ],
-};
-
-export const weekDayOptions = [
-    {
-        label: "Monday",
-        value: "Monday",
-    },
-    {
-        label: "Tuesday",
-        value: "Tuesday",
-    },
-    {
-        label: "Wednesday",
-        value: "Wednesday",
-    },
-    {
-        label: "Thursday",
-        value: "Thursday",
-    },
-    {
-        label: "Friday",
-        value: "Friday",
-    },
-    {
-        label: "Saturday",
-        value: "Saturday",
-    },
-    {
-        label: "Sunday",
-        value: "Sunday",
-    },
-];
+            if (fromDate > toDate) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode
+                        .custom,
+                    path: ["toDate"],
+                    message:
+                        "To date must be greater than or equal to from date",
+                });
+            }
+        }
+    });

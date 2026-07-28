@@ -1,192 +1,53 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 
-import { weeklyPlanApi } from "../../../api/academic/weeklyPlan/weeklyPlanApi.js";
+import { weeklyPlanApi } from "../../../api/academic/weeklyPlan/weeklyPlanApi";
 
-const getErrorMessage = (error) => {
+const getErrorMessage = (
+    error,
+    fallbackMessage,
+) => {
     return (
         error?.response?.data?.message ||
         error?.message ||
-        "Something went wrong"
+        fallbackMessage
     );
 };
 
-const normalizeOptionalValue = (value) => {
-    if (typeof value !== "string") {
-        return value ?? null;
-    }
-
-    const trimmedValue = value.trim();
-
-    return trimmedValue || null;
-};
-
-const normalizeRequiredValue = (value) => {
-    if (typeof value !== "string") {
-        return "";
-    }
-
-    return value.trim();
-};
-
-const prepareWeeklyPlanPayload = (payload) => {
-    return {
-        session: normalizeRequiredValue(
-            payload.session,
-        ),
-
-        board: normalizeRequiredValue(
-            payload.board,
-        ),
-
-        classSlug: normalizeRequiredValue(
-            payload.classSlug,
-        ),
-
-        classTitle: normalizeRequiredValue(
-            payload.classTitle,
-        ),
-
-        sectionSlug: normalizeRequiredValue(
-            payload.sectionSlug,
-        ),
-
-        section: normalizeRequiredValue(
-            payload.section,
-        ),
-
-        classSubjectSlug:
-            normalizeRequiredValue(
-                payload.classSubjectSlug,
-            ),
-
-        subject: normalizeRequiredValue(
-            payload.subject,
-        ),
-
-        teacherSlug: normalizeOptionalValue(
-            payload.teacherSlug,
-        ),
-
-        fromDate: payload.fromDate,
-
-        toDate: payload.toDate,
-
-        topic: normalizeRequiredValue(
-            payload.topic,
-        ),
-
-        subTopic: normalizeOptionalValue(
-            payload.subTopic,
-        ),
-
-        introductionAids:
-            normalizeOptionalValue(
-                payload.introductionAids,
-            ),
-
-        introductionActivity:
-            normalizeOptionalValue(
-                payload.introductionActivity,
-            ),
-
-        learningObjective:
-            normalizeOptionalValue(
-                payload.learningObjective,
-            ),
-
-        numberOfPeriods: Number(
-            payload.numberOfPeriods,
-        ),
-
-        lessons: Array.isArray(
-            payload.lessons,
-        )
-            ? payload.lessons.map(
-                (lesson, index) => ({
-                    lessonOrder: Number(
-                        lesson.lessonOrder ||
-                        index + 1,
-                    ),
-
-                    day:
-                        normalizeRequiredValue(
-                            lesson.day,
-                        ),
-
-                    teachingMethodology:
-                        normalizeRequiredValue(
-                            lesson.teachingMethodology,
-                        ),
-
-                    studentActivities:
-                        normalizeRequiredValue(
-                            lesson.studentActivities,
-                        ),
-
-                    assessment:
-                        normalizeRequiredValue(
-                            lesson.assessment,
-                        ),
-                }),
-            )
-            : [],
-    };
-};
-
-const splitWeeklyPlans = (
-    weeklyPlans = [],
-) => {
-    return {
-        activeWeeklyPlans:
-            weeklyPlans.filter(
-                (item) =>
-                    item?.isActive === true,
-            ),
-
-        inactiveWeeklyPlans:
-            weeklyPlans.filter(
-                (item) =>
-                    item?.isActive === false,
-            ),
-    };
+const getResponseData = (response) => {
+    return response?.data || null;
 };
 
 export const useWeeklyPlanStore = create(
     (set, get) => ({
         weeklyPlans: [],
-        activeWeeklyPlans: [],
-        inactiveWeeklyPlans: [],
 
         selectedWeeklyPlan: null,
 
-        /*
-         * Weekly Plan modal dropdown options
-         */
-        weeklyPlanClasses: [],
-        weeklyPlanSections: [],
-        weeklyPlanSubjects: [],
-
-        /*
-         * CRUD loaders
-         */
         loading: false,
+
+        detailLoading: false,
+
         submitLoading: false,
-        deleteLoading: false,
-        restoreLoading: false,
 
-        /*
-         * Dropdown option loaders
-         */
-        classOptionLoading: false,
-        sectionOptionLoading: false,
-        subjectOptionLoading: false,
+        lessonDeleteLoading: false,
 
-        error: null,
+        deletingLessonSlug: null,
 
-        /* ------------------------------------------------------------------ */
-        /*                         WEEKLY PLAN CRUD                           */
-        /* ------------------------------------------------------------------ */
+        setSelectedWeeklyPlan: (
+            weeklyPlan,
+        ) => {
+            set({
+                selectedWeeklyPlan:
+                    weeklyPlan || null,
+            });
+        },
+
+        clearSelectedWeeklyPlan: () => {
+            set({
+                selectedWeeklyPlan: null,
+            });
+        },
 
         fetchWeeklyPlans: async (
             params = {},
@@ -194,7 +55,6 @@ export const useWeeklyPlanStore = create(
             try {
                 set({
                     loading: true,
-                    error: null,
                 });
 
                 const response =
@@ -202,31 +62,27 @@ export const useWeeklyPlanStore = create(
                         params,
                     );
 
-                const weeklyPlans =
-                    response?.data || [];
-
                 set({
-                    weeklyPlans,
-                    ...splitWeeklyPlans(
-                        weeklyPlans,
-                    ),
+                    weeklyPlans:
+                        getResponseData(
+                            response,
+                        ) || [],
                 });
 
-                return weeklyPlans;
+                return true;
             } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
                 set({
                     weeklyPlans: [],
-                    activeWeeklyPlans: [],
-                    inactiveWeeklyPlans: [],
-                    error: message,
                 });
 
-                toast.error(message);
+                toast.error(
+                    getErrorMessage(
+                        error,
+                        "Failed to fetch weekly plans",
+                    ),
+                );
 
-                return [];
+                return false;
             } finally {
                 set({
                     loading: false,
@@ -239,8 +95,7 @@ export const useWeeklyPlanStore = create(
         ) => {
             try {
                 set({
-                    loading: true,
-                    error: null,
+                    detailLoading: true,
                     selectedWeeklyPlan: null,
                 });
 
@@ -250,7 +105,9 @@ export const useWeeklyPlanStore = create(
                     );
 
                 const weeklyPlan =
-                    response?.data || null;
+                    getResponseData(
+                        response,
+                    );
 
                 set({
                     selectedWeeklyPlan:
@@ -259,20 +116,17 @@ export const useWeeklyPlanStore = create(
 
                 return weeklyPlan;
             } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
-                set({
-                    selectedWeeklyPlan: null,
-                    error: message,
-                });
-
-                toast.error(message);
+                toast.error(
+                    getErrorMessage(
+                        error,
+                        "Failed to fetch weekly plan",
+                    ),
+                );
 
                 return null;
             } finally {
                 set({
-                    loading: false,
+                    detailLoading: false,
                 });
             }
         },
@@ -283,41 +137,26 @@ export const useWeeklyPlanStore = create(
             try {
                 set({
                     submitLoading: true,
-                    error: null,
                 });
-
-                const preparedPayload =
-                    prepareWeeklyPlanPayload(
-                        payload,
-                    );
 
                 const response =
                     await weeklyPlanApi.create(
-                        preparedPayload,
+                        payload,
                     );
 
-                const createdPlan =
-                    response?.data;
-
-                if (!createdPlan) {
-                    throw new Error(
-                        "Weekly plan could not be created",
+                const createdWeeklyPlan =
+                    getResponseData(
+                        response,
                     );
+
+                if (createdWeeklyPlan) {
+                    set((state) => ({
+                        weeklyPlans: [
+                            createdWeeklyPlan,
+                            ...state.weeklyPlans,
+                        ],
+                    }));
                 }
-
-                set((state) => {
-                    const weeklyPlans = [
-                        createdPlan,
-                        ...state.weeklyPlans,
-                    ];
-
-                    return {
-                        weeklyPlans,
-                        ...splitWeeklyPlans(
-                            weeklyPlans,
-                        ),
-                    };
-                });
 
                 toast.success(
                     response?.message ||
@@ -326,14 +165,12 @@ export const useWeeklyPlanStore = create(
 
                 return true;
             } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
-                set({
-                    error: message,
-                });
-
-                toast.error(message);
+                toast.error(
+                    getErrorMessage(
+                        error,
+                        "Failed to create weekly plan",
+                    ),
+                );
 
                 return false;
             } finally {
@@ -350,53 +187,34 @@ export const useWeeklyPlanStore = create(
             try {
                 set({
                     submitLoading: true,
-                    error: null,
                 });
-
-                const preparedPayload =
-                    prepareWeeklyPlanPayload(
-                        payload,
-                    );
 
                 const response =
                     await weeklyPlanApi.update(
                         slug,
-                        preparedPayload,
+                        payload,
                     );
 
-                const updatedPlan =
-                    response?.data;
-
-                if (!updatedPlan) {
-                    throw new Error(
-                        "Weekly plan could not be updated",
+                const updatedWeeklyPlan =
+                    getResponseData(
+                        response,
                     );
-                }
 
-                set((state) => {
-                    const weeklyPlans =
-                        state.weeklyPlans.map(
-                            (item) =>
-                                item.slug === slug
-                                    ? updatedPlan
-                                    : item,
-                        );
-
-                    return {
-                        weeklyPlans,
-
-                        ...splitWeeklyPlans(
-                            weeklyPlans,
-                        ),
+                if (updatedWeeklyPlan) {
+                    set((state) => ({
+                        weeklyPlans:
+                            state.weeklyPlans.map(
+                                (item) =>
+                                    item.slug ===
+                                        slug
+                                        ? updatedWeeklyPlan
+                                        : item,
+                            ),
 
                         selectedWeeklyPlan:
-                            state
-                                .selectedWeeklyPlan
-                                ?.slug === slug
-                                ? updatedPlan
-                                : state.selectedWeeklyPlan,
-                    };
-                });
+                            updatedWeeklyPlan,
+                    }));
+                }
 
                 toast.success(
                     response?.message ||
@@ -405,14 +223,12 @@ export const useWeeklyPlanStore = create(
 
                 return true;
             } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
-                set({
-                    error: message,
-                });
-
-                toast.error(message);
+                toast.error(
+                    getErrorMessage(
+                        error,
+                        "Failed to update weekly plan",
+                    ),
+                );
 
                 return false;
             } finally {
@@ -427,8 +243,7 @@ export const useWeeklyPlanStore = create(
         ) => {
             try {
                 set({
-                    deleteLoading: true,
-                    error: null,
+                    submitLoading: true,
                 });
 
                 const response =
@@ -436,39 +251,45 @@ export const useWeeklyPlanStore = create(
                         slug,
                     );
 
-                const deletedPlan =
-                    response?.data;
-
-                if (!deletedPlan) {
-                    throw new Error(
-                        "Weekly plan could not be deleted",
+                const deletedWeeklyPlan =
+                    getResponseData(
+                        response,
                     );
-                }
 
-                set((state) => {
-                    const weeklyPlans =
+                set((state) => ({
+                    weeklyPlans:
                         state.weeklyPlans.map(
                             (item) =>
-                                item.slug === slug
-                                    ? deletedPlan
+                                item.slug ===
+                                    slug
+                                    ? {
+                                        ...item,
+                                        ...(deletedWeeklyPlan ||
+                                            {}),
+                                        status:
+                                            "inactive",
+                                        isActive:
+                                            false,
+                                    }
                                     : item,
-                        );
-
-                    return {
-                        weeklyPlans,
-
-                        ...splitWeeklyPlans(
-                            weeklyPlans,
                         ),
 
-                        selectedWeeklyPlan:
-                            state
-                                .selectedWeeklyPlan
-                                ?.slug === slug
-                                ? deletedPlan
-                                : state.selectedWeeklyPlan,
-                    };
-                });
+                    selectedWeeklyPlan:
+                        state
+                            .selectedWeeklyPlan
+                            ?.slug ===
+                            slug
+                            ? {
+                                ...state.selectedWeeklyPlan,
+                                ...(deletedWeeklyPlan ||
+                                    {}),
+                                status:
+                                    "inactive",
+                                isActive:
+                                    false,
+                            }
+                            : state.selectedWeeklyPlan,
+                }));
 
                 toast.success(
                     response?.message ||
@@ -477,19 +298,17 @@ export const useWeeklyPlanStore = create(
 
                 return true;
             } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
-                set({
-                    error: message,
-                });
-
-                toast.error(message);
+                toast.error(
+                    getErrorMessage(
+                        error,
+                        "Failed to delete weekly plan",
+                    ),
+                );
 
                 return false;
             } finally {
                 set({
-                    deleteLoading: false,
+                    submitLoading: false,
                 });
             }
         },
@@ -499,8 +318,7 @@ export const useWeeklyPlanStore = create(
         ) => {
             try {
                 set({
-                    restoreLoading: true,
-                    error: null,
+                    submitLoading: true,
                 });
 
                 const response =
@@ -508,39 +326,49 @@ export const useWeeklyPlanStore = create(
                         slug,
                     );
 
-                const restoredPlan =
-                    response?.data;
-
-                if (!restoredPlan) {
-                    throw new Error(
-                        "Weekly plan could not be restored",
+                const restoredWeeklyPlan =
+                    getResponseData(
+                        response,
                     );
-                }
 
-                set((state) => {
-                    const weeklyPlans =
+                set((state) => ({
+                    weeklyPlans:
                         state.weeklyPlans.map(
                             (item) =>
-                                item.slug === slug
-                                    ? restoredPlan
+                                item.slug ===
+                                    slug
+                                    ? {
+                                        ...item,
+                                        ...(restoredWeeklyPlan ||
+                                            {}),
+                                        status:
+                                            "active",
+                                        isActive:
+                                            true,
+                                        deletedAt:
+                                            null,
+                                    }
                                     : item,
-                        );
-
-                    return {
-                        weeklyPlans,
-
-                        ...splitWeeklyPlans(
-                            weeklyPlans,
                         ),
 
-                        selectedWeeklyPlan:
-                            state
-                                .selectedWeeklyPlan
-                                ?.slug === slug
-                                ? restoredPlan
-                                : state.selectedWeeklyPlan,
-                    };
-                });
+                    selectedWeeklyPlan:
+                        state
+                            .selectedWeeklyPlan
+                            ?.slug ===
+                            slug
+                            ? {
+                                ...state.selectedWeeklyPlan,
+                                ...(restoredWeeklyPlan ||
+                                    {}),
+                                status:
+                                    "active",
+                                isActive:
+                                    true,
+                                deletedAt:
+                                    null,
+                            }
+                            : state.selectedWeeklyPlan,
+                }));
 
                 toast.success(
                     response?.message ||
@@ -549,338 +377,149 @@ export const useWeeklyPlanStore = create(
 
                 return true;
             } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
-                set({
-                    error: message,
-                });
-
-                toast.error(message);
+                toast.error(
+                    getErrorMessage(
+                        error,
+                        "Failed to restore weekly plan",
+                    ),
+                );
 
                 return false;
             } finally {
                 set({
-                    restoreLoading: false,
+                    submitLoading: false,
                 });
             }
         },
 
-        /* ------------------------------------------------------------------ */
-        /*                      WEEKLY PLAN OPTIONS                           */
-        /* ------------------------------------------------------------------ */
-
-        fetchWeeklyPlanClasses: async ({
-            session,
-            board,
-        }) => {
-            const normalizedSession =
-                normalizeRequiredValue(
-                    session,
-                );
-
-            const normalizedBoard =
-                normalizeRequiredValue(
-                    board,
-                );
-
-            if (
-                !normalizedSession ||
-                !normalizedBoard
-            ) {
-                set({
-                    weeklyPlanClasses: [],
-                    weeklyPlanSections: [],
-                    weeklyPlanSubjects: [],
-                });
-
-                return false;
-            }
-
-            try {
-                set({
-                    classOptionLoading: true,
-
-                    weeklyPlanClasses: [],
-                    weeklyPlanSections: [],
-                    weeklyPlanSubjects: [],
-
-                    error: null,
-                });
-
-                const response =
-                    await weeklyPlanApi.getClasses(
-                        {
-                            session:
-                                normalizedSession,
-
-                            board:
-                                normalizedBoard,
-                        },
-                    );
-
-                const classes =
-                    response?.data || [];
-
-                set({
-                    weeklyPlanClasses:
-                        Array.isArray(classes)
-                            ? classes
-                            : [],
-                });
-
-                return true;
-            } catch (error) {
-                const message =
-                    getErrorMessage(error);
-
-                set({
-                    weeklyPlanClasses: [],
-                    weeklyPlanSections: [],
-                    weeklyPlanSubjects: [],
-                    error: message,
-                });
-
-                toast.error(message);
-
-                return false;
-            } finally {
-                set({
-                    classOptionLoading: false,
-                });
-            }
-        },
-
-        fetchWeeklyPlanSections:
-            async (classSlug) => {
-                const normalizedClassSlug =
-                    normalizeRequiredValue(
-                        classSlug,
-                    );
-
-                if (
-                    !normalizedClassSlug
-                ) {
-                    set({
-                        weeklyPlanSections: [],
-                    });
-
-                    return false;
-                }
-
+        deleteWeeklyPlanLesson:
+            async (
+                weeklyPlanSlug,
+                lessonSlug,
+            ) => {
                 try {
                     set({
-                        sectionOptionLoading:
+                        lessonDeleteLoading:
                             true,
-
-                        weeklyPlanSections: [],
-
-                        error: null,
+                        deletingLessonSlug:
+                            lessonSlug,
                     });
 
                     const response =
-                        await weeklyPlanApi.getSections(
-                            normalizedClassSlug,
+                        await weeklyPlanApi.deleteLesson(
+                            weeklyPlanSlug,
+                            lessonSlug,
                         );
 
-                    const sections =
-                        response?.data || [];
+                    const result =
+                        getResponseData(
+                            response,
+                        );
 
-                    set({
-                        weeklyPlanSections:
-                            Array.isArray(
-                                sections,
-                            )
-                                ? sections
-                                : [],
+                    const updatedPeriods =
+                        result?.numberOfPeriods;
+
+                    set((state) => {
+                        const updatePlan = (
+                            plan,
+                        ) => {
+                            if (
+                                !plan ||
+                                plan.slug !==
+                                weeklyPlanSlug
+                            ) {
+                                return plan;
+                            }
+
+                            const updatedLessons =
+                                (
+                                    plan.lessons ||
+                                    []
+                                ).filter(
+                                    (
+                                        lesson,
+                                    ) =>
+                                        lesson.slug !==
+                                        lessonSlug,
+                                );
+
+                            return {
+                                ...plan,
+                                lessons:
+                                    updatedLessons,
+                                numberOfPeriods:
+                                    updatedPeriods ??
+                                    updatedLessons.length,
+                            };
+                        };
+
+                        return {
+                            weeklyPlans:
+                                state.weeklyPlans.map(
+                                    updatePlan,
+                                ),
+
+                            selectedWeeklyPlan:
+                                updatePlan(
+                                    state.selectedWeeklyPlan,
+                                ),
+                        };
                     });
+
+                    toast.success(
+                        response?.message ||
+                        "Weekly plan lesson deleted successfully",
+                    );
 
                     return true;
                 } catch (error) {
-                    const message =
-                        getErrorMessage(error);
-
-                    set({
-                        weeklyPlanSections: [],
-                        error: message,
-                    });
-
-                    toast.error(message);
+                    toast.error(
+                        getErrorMessage(
+                            error,
+                            "Failed to delete weekly plan lesson",
+                        ),
+                    );
 
                     return false;
                 } finally {
                     set({
-                        sectionOptionLoading:
+                        lessonDeleteLoading:
                             false,
+                        deletingLessonSlug:
+                            null,
                     });
                 }
             },
 
-        fetchWeeklyPlanSubjects:
-            async (classSlug) => {
-                const normalizedClassSlug =
-                    normalizeRequiredValue(
-                        classSlug,
-                    );
-
-                if (
-                    !normalizedClassSlug
-                ) {
-                    set({
-                        weeklyPlanSubjects: [],
-                    });
-
-                    return false;
-                }
-
-                try {
-                    set({
-                        subjectOptionLoading:
-                            true,
-
-                        weeklyPlanSubjects: [],
-
-                        error: null,
-                    });
-
-                    const response =
-                        await weeklyPlanApi.getSubjects(
-                            normalizedClassSlug,
-                        );
-
-                    const subjects =
-                        response?.data || [];
-
-                    set({
-                        weeklyPlanSubjects:
-                            Array.isArray(
-                                subjects,
-                            )
-                                ? subjects
-                                : [],
-                    });
-
-                    return true;
-                } catch (error) {
-                    const message =
-                        getErrorMessage(error);
-
-                    set({
-                        weeklyPlanSubjects: [],
-                        error: message,
-                    });
-
-                    toast.error(message);
-
-                    return false;
-                } finally {
-                    set({
-                        subjectOptionLoading:
-                            false,
-                    });
-                }
-            },
-
-        /* ------------------------------------------------------------------ */
-        /*                              CLEAR                                 */
-        /* ------------------------------------------------------------------ */
-
-        clearWeeklyPlanClassOptions:
-            () => {
-                set({
-                    weeklyPlanClasses: [],
-                    weeklyPlanSections: [],
-                    weeklyPlanSubjects: [],
-
-                    classOptionLoading: false,
-                    sectionOptionLoading:
-                        false,
-                    subjectOptionLoading:
-                        false,
-                });
-            },
-
-        clearWeeklyPlanDependentOptions:
-            () => {
-                set({
-                    weeklyPlanSections: [],
-                    weeklyPlanSubjects: [],
-
-                    sectionOptionLoading:
-                        false,
-                    subjectOptionLoading:
-                        false,
-                });
-            },
-
-        clearWeeklyPlanSections: () => {
-            set({
-                weeklyPlanSections: [],
-                sectionOptionLoading: false,
-            });
-        },
-
-        clearWeeklyPlanSubjects: () => {
-            set({
-                weeklyPlanSubjects: [],
-                subjectOptionLoading: false,
-            });
-        },
-
-        setSelectedWeeklyPlan: (
-            weeklyPlan,
+        removeUnsavedLesson: (
+            localLessonId,
         ) => {
-            set({
-                selectedWeeklyPlan:
-                    weeklyPlan,
-            });
-        },
+            const selectedWeeklyPlan =
+                get()
+                    .selectedWeeklyPlan;
 
-        clearSelectedWeeklyPlan: () => {
-            set({
-                selectedWeeklyPlan: null,
-            });
-        },
+            if (!selectedWeeklyPlan) {
+                return;
+            }
 
-        clearWeeklyPlans: () => {
-            set({
-                weeklyPlans: [],
-                activeWeeklyPlans: [],
-                inactiveWeeklyPlans: [],
-                selectedWeeklyPlan: null,
-
-                weeklyPlanClasses: [],
-                weeklyPlanSections: [],
-                weeklyPlanSubjects: [],
-
-                loading: false,
-                submitLoading: false,
-                deleteLoading: false,
-                restoreLoading: false,
-
-                classOptionLoading: false,
-                sectionOptionLoading:
-                    false,
-                subjectOptionLoading:
-                    false,
-
-                error: null,
-            });
-        },
-
-        clearError: () => {
-            set({
-                error: null,
-            });
-        },
-
-        getWeeklyPlanBySlugFromState:
-            (slug) => {
-                return get().weeklyPlans.find(
-                    (weeklyPlan) =>
-                        weeklyPlan.slug ===
-                        slug,
+            const lessons =
+                (
+                    selectedWeeklyPlan.lessons ||
+                    []
+                ).filter(
+                    (lesson) =>
+                        lesson.localId !==
+                        localLessonId,
                 );
-            },
+
+            set({
+                selectedWeeklyPlan: {
+                    ...selectedWeeklyPlan,
+                    lessons,
+                    numberOfPeriods:
+                        lessons.length,
+                },
+            });
+        },
     }),
 );

@@ -875,7 +875,7 @@ export default function AttendanceManager() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center">
+                  <td colSpan={26} className="py-7 text-center">
                     <Loader2 className="w-8 h-8 mx-auto animate-spin text-indigo-400" />
 
                     <p className="mt-3 text-gray-400">Loading attendance...</p>
@@ -883,13 +883,13 @@ export default function AttendanceManager() {
                 </tr>
               ) : !attendanceFiltersReady ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-gray-400">
+                  <td colSpan={26} className="py-7 text-center text-gray-400">
                     Select session, board and class to view attendance.
                   </td>
                 </tr>
               ) : !attendanceStudents.length ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-gray-400">
+                  <td colSpan={26} className="py-7 text-center text-gray-400">
                     No students found for selected filters.
                   </td>
                 </tr>

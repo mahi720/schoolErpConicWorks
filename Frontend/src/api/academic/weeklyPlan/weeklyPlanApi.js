@@ -1,4 +1,4 @@
-import API from "../../../api/axios/axios";
+import API from "../../axios/axios";
 
 const WEEKLY_PLAN_URL = "/weekly-plans";
 
@@ -24,6 +24,12 @@ export const weeklyPlanApi = {
     },
 
     getBySlug: async (slug) => {
+        if (!slug) {
+            throw new Error(
+                "Weekly plan slug is required",
+            );
+        }
+
         const response = await API.get(
             `${WEEKLY_PLAN_URL}/${slug}`,
         );
@@ -32,6 +38,12 @@ export const weeklyPlanApi = {
     },
 
     update: async (slug, payload) => {
+        if (!slug) {
+            throw new Error(
+                "Weekly plan slug is required",
+            );
+        }
+
         const response = await API.patch(
             `${WEEKLY_PLAN_URL}/${slug}`,
             payload,
@@ -41,6 +53,12 @@ export const weeklyPlanApi = {
     },
 
     delete: async (slug) => {
+        if (!slug) {
+            throw new Error(
+                "Weekly plan slug is required",
+            );
+        }
+
         const response = await API.delete(
             `${WEEKLY_PLAN_URL}/${slug}`,
         );
@@ -49,6 +67,12 @@ export const weeklyPlanApi = {
     },
 
     restore: async (slug) => {
+        if (!slug) {
+            throw new Error(
+                "Weekly plan slug is required",
+            );
+        }
+
         const response = await API.patch(
             `${WEEKLY_PLAN_URL}/${slug}/restore`,
         );
@@ -56,78 +80,24 @@ export const weeklyPlanApi = {
         return response.data;
     },
 
-    /*
-     * Session + Board ke according mapped classes fetch karega.
-     *
-     * GET:
-     * /weekly-plans/options/classes
-     *
-     * Query:
-     * {
-     *   session: "2026-2027",
-     *   board: "CBSE"
-     * }
-     */
-    getClasses: async ({
-        session,
-        board,
-    }) => {
-        const response = await API.get(
-            `${WEEKLY_PLAN_URL}/options/classes`,
-            {
-                params: {
-                    session,
-                    board,
-                },
-            },
-        );
+    deleteLesson: async (
+        weeklyPlanSlug,
+        lessonSlug,
+    ) => {
+        if (!weeklyPlanSlug) {
+            throw new Error(
+                "Weekly plan slug is required",
+            );
+        }
 
-        return response.data;
-    },
+        if (!lessonSlug) {
+            throw new Error(
+                "Lesson slug is required",
+            );
+        }
 
-    /*
-     * Selected class ki mapped sections fetch karega.
-     *
-     * GET:
-     * /weekly-plans/options/sections
-     *
-     * Query:
-     * {
-     *   classSlug: "..."
-     * }
-     */
-    getSections: async (classSlug) => {
-        const response = await API.get(
-            `${WEEKLY_PLAN_URL}/options/sections`,
-            {
-                params: {
-                    classSlug,
-                },
-            },
-        );
-
-        return response.data;
-    },
-
-    /*
-     * Selected class ke assigned subjects fetch karega.
-     *
-     * GET:
-     * /weekly-plans/options/subjects
-     *
-     * Query:
-     * {
-     *   classSlug: "..."
-     * }
-     */
-    getSubjects: async (classSlug) => {
-        const response = await API.get(
-            `${WEEKLY_PLAN_URL}/options/subjects`,
-            {
-                params: {
-                    classSlug,
-                },
-            },
+        const response = await API.delete(
+            `${WEEKLY_PLAN_URL}/${weeklyPlanSlug}/lessons/${lessonSlug}`,
         );
 
         return response.data;

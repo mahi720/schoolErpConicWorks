@@ -373,7 +373,7 @@ export default function InactiveStudents() {
             <tbody>
               {inactiveLoading ? (
                 <tr>
-                  <td colSpan={13} className="p-16">
+                  <td colSpan={13} className="p-6">
                     <div className="flex items-center justify-center text-gray-400">
                       <Loader2 size={22} className="animate-spin mr-2" />
                       Loading inactive students...
@@ -382,7 +382,7 @@ export default function InactiveStudents() {
                 </tr>
               ) : filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="p-16 text-center text-gray-400">
+                  <td colSpan={13} className="p-6 text-center text-gray-400">
                     No inactive students found
                   </td>
                 </tr>

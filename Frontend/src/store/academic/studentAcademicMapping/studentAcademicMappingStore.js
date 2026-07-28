@@ -12,9 +12,9 @@ const initialSelectionState = {
 };
 
 /*
-|--------------------------------------------------------------------------
+
 | Mapping Slug Helper
-|--------------------------------------------------------------------------
+
 |
 | Backend PATCH route ko student slug nahi,
 | StudentAcademicRollSectionStreamMapping ka slug chahiye.
@@ -31,9 +31,9 @@ const getMappingSlug = (student) => {
 };
 
 /*
-|--------------------------------------------------------------------------
+
 | Parse Formatted Roll Number
-|--------------------------------------------------------------------------
+
 |
 | UKG-001 =>
 |
@@ -87,9 +87,9 @@ const parseFormattedRollNumber = (
 };
 
 /*
-|--------------------------------------------------------------------------
+
 | Generate Roll Payload
-|--------------------------------------------------------------------------
+
 |
 | UKG-001:
 |
@@ -142,9 +142,9 @@ const generateRollPayload = ({
 export const useStudentAcademicMappingStore = create(
     (set, get) => ({
         /*
-        |--------------------------------------------------------------------------
+        
         | Data States
-        |--------------------------------------------------------------------------
+        
         */
 
         academicSetup: null,
@@ -160,9 +160,9 @@ export const useStudentAcademicMappingStore = create(
         selectedMapping: null,
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Loading States
-        |--------------------------------------------------------------------------
+        
         */
 
         loading: false,
@@ -172,26 +172,26 @@ export const useStudentAcademicMappingStore = create(
         submitLoading: false,
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Selection States
-        |--------------------------------------------------------------------------
+        
         */
 
         ...initialSelectionState,
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Last Used Filters
-        |--------------------------------------------------------------------------
+        
         */
 
         lastUnmappedFilters: null,
         lastMappedFilters: null,
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Basic Selection Actions
-        |--------------------------------------------------------------------------
+        
         */
 
         setSelectedSession: (session) => {
@@ -297,9 +297,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Fetch Dropdown Setup
-        |--------------------------------------------------------------------------
+        
         */
 
         fetchAcademicSetup: async (
@@ -364,9 +364,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Fetch Unmapped Students
-        |--------------------------------------------------------------------------
+        
         */
 
         fetchUnmappedStudents: async (
@@ -408,9 +408,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Fetch Mapped Students
-        |--------------------------------------------------------------------------
+        
         */
 
         fetchMappedStudents: async (
@@ -453,9 +453,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Refresh Last Mapped List
-        |--------------------------------------------------------------------------
+        
         */
 
         refreshMappedStudents:
@@ -474,9 +474,9 @@ export const useStudentAcademicMappingStore = create(
             },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Get Mapping By Slug
-        |--------------------------------------------------------------------------
+        
         */
 
         fetchMappingBySlug: async (
@@ -515,9 +515,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Create / Assign Section
-        |--------------------------------------------------------------------------
+        
         |
         | Unmapped student ka academic mapping create hoga.
         |
@@ -592,9 +592,9 @@ export const useStudentAcademicMappingStore = create(
             },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Update Single Mapping
-        |--------------------------------------------------------------------------
+        
         */
 
         updateStudentMapping:
@@ -658,9 +658,9 @@ export const useStudentAcademicMappingStore = create(
             },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Assign Stream To Selected Students
-        |--------------------------------------------------------------------------
+        
         |
         | Har selected mapped student par PATCH request jayegi.
         |
@@ -828,9 +828,9 @@ export const useStudentAcademicMappingStore = create(
             },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Assign Bulk Roll Numbers
-        |--------------------------------------------------------------------------
+        
         |
         | Example:
         |
@@ -844,9 +844,9 @@ export const useStudentAcademicMappingStore = create(
         */
 
         /*
-|--------------------------------------------------------------------------
+
 | Assign Bulk Roll Numbers
-|--------------------------------------------------------------------------
+
 |
 | firstRollNumber: UKG-001
 |
@@ -871,9 +871,9 @@ export const useStudentAcademicMappingStore = create(
                 });
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Validate Students
-                |--------------------------------------------------------------------------
+                
                 */
 
                 if (
@@ -925,9 +925,9 @@ export const useStudentAcademicMappingStore = create(
                 }
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Preserve Padding
-                |--------------------------------------------------------------------------
+                
                 |
                 | 001 => paddingLength 3
                 |
@@ -937,9 +937,9 @@ export const useStudentAcademicMappingStore = create(
                     startText.length;
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Prepare All Requests
-                |--------------------------------------------------------------------------
+                
                 */
 
                 const requests =
@@ -1027,9 +1027,9 @@ export const useStudentAcademicMappingStore = create(
                     );
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Run All Requests
-                |--------------------------------------------------------------------------
+                
                 |
                 | Promise.allSettled ensures one failed request does not stop the rest.
                 |
@@ -1055,9 +1055,9 @@ export const useStudentAcademicMappingStore = create(
                     );
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Update Local State
-                |--------------------------------------------------------------------------
+                
                 */
 
                 if (
@@ -1124,9 +1124,9 @@ export const useStudentAcademicMappingStore = create(
                 }
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Failed Requests
-                |--------------------------------------------------------------------------
+                
                 */
 
                 if (
@@ -1167,15 +1167,15 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Update Single Student Roll Number
-        |--------------------------------------------------------------------------
+        
         */
 
         /*
-|--------------------------------------------------------------------------
+
 | Update Single Student Roll Number
-|--------------------------------------------------------------------------
+
 */
 
         updateStudentRollNumber: async ({
@@ -1255,9 +1255,9 @@ export const useStudentAcademicMappingStore = create(
                     {};
 
                 /*
-                |--------------------------------------------------------------------------
+                
                 | Immediate Zustand Update
-                |--------------------------------------------------------------------------
+                
                 */
 
                 set((state) => ({
@@ -1309,9 +1309,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Soft Delete Mapping
-        |--------------------------------------------------------------------------
+        
         */
 
         deleteStudentMapping:
@@ -1395,9 +1395,9 @@ export const useStudentAcademicMappingStore = create(
             },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Restore Mapping
-        |--------------------------------------------------------------------------
+        
         */
 
         restoreStudentMapping:
@@ -1481,9 +1481,9 @@ export const useStudentAcademicMappingStore = create(
             },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Reset Students
-        |--------------------------------------------------------------------------
+        
         */
 
         resetStudentLists: () => {
@@ -1500,9 +1500,9 @@ export const useStudentAcademicMappingStore = create(
         },
 
         /*
-        |--------------------------------------------------------------------------
+        
         | Reset Complete Store
-        |--------------------------------------------------------------------------
+        
         */
 
         resetStudentAcademicMappingStore:

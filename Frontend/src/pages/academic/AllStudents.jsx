@@ -395,6 +395,30 @@ export default function AllStudents() {
       {/* Filters */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {/* Academic year */}
+          <select
+            value={filters.currentSession}
+            onMouseDown={handleSessionDropdownOpen}
+            onFocus={handleSessionDropdownOpen}
+            onChange={(e) =>
+              handleFilterChange("currentSession", e.target.value)
+            }
+            disabled={sessionLoading}
+            className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white disabled:opacity-60"
+          >
+            <option value="">
+              {sessionLoading
+                ? "Loading academic years..."
+                : "Select Academic Year"}
+            </option>
+
+            {activeSessions.map((session) => (
+              <option key={session.slug} value={session.name}>
+                {session.name}
+              </option>
+            ))}
+          </select>
+
           {/* Board */}
           <select
             value={filters.board}
@@ -452,6 +476,18 @@ export default function AllStudents() {
             <option value="ST">ST</option>
           </select>
 
+          {/* Gender */}
+          <select
+            value={filters.gender}
+            onChange={(e) => handleFilterChange("gender", e.target.value)}
+            className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white"
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+
           {/* Search */}
           <div className="relative xl:col-span-2">
             <Search
@@ -467,30 +503,6 @@ export default function AllStudents() {
             />
           </div>
 
-          {/* Academic year */}
-          <select
-            value={filters.currentSession}
-            onMouseDown={handleSessionDropdownOpen}
-            onFocus={handleSessionDropdownOpen}
-            onChange={(e) =>
-              handleFilterChange("currentSession", e.target.value)
-            }
-            disabled={sessionLoading}
-            className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white disabled:opacity-60"
-          >
-            <option value="">
-              {sessionLoading
-                ? "Loading academic years..."
-                : "Select Academic Year"}
-            </option>
-
-            {activeSessions.map((session) => (
-              <option key={session.slug} value={session.name}>
-                {session.name}
-              </option>
-            ))}
-          </select>
-
           {/* Sponsorship */}
           <select
             value={filters.sponsorshipType}
@@ -503,18 +515,6 @@ export default function AllStudents() {
             <option value="Self/Parent">Self/Parent</option>
             <option value="RTE">RTE</option>
             <option value="Others">Others</option>
-          </select>
-
-          {/* Gender */}
-          <select
-            value={filters.gender}
-            onChange={(e) => handleFilterChange("gender", e.target.value)}
-            className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white"
-          >
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
           </select>
         </div>
       </div>
