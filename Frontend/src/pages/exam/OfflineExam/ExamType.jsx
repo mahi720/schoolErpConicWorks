@@ -1,30 +1,71 @@
-import React, { useState } from "react";
-import { Plus, Edit, Trash2, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Plus, Edit, Trash2, X, RotateCcw, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { useExamTypeStore } from "../../../store/examManager/examType/examTypeStore";
+import { examTypeSchema } from "../../../validations/examManager/examType/examTypeSchema";
 
 export default function ExamType() {
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [actionSlug, setActionSlug] = useState(null);
 
-  const [examTypes, setExamTypes] = useState([
-    {
-      id: 1,
-      type: "Unit Test",
-      description: "Monthly unit test exam",
-    },
-    {
-      id: 2,
-      type: "Half Yearly",
-      description: "Mid term examination",
-    },
-  ]);
+  const {
+    examTypes,
+    loading,
+    submitLoading,
+    fetchExamTypes,
+    deleteExamType,
+    restoreExamType,
+  } = useExamTypeStore();
+
+  useEffect(() => {
+    fetchExamTypes({
+      status: "all",
+    });
+  }, [fetchExamTypes]);
 
   const handleEdit = (item) => {
+    if (!item.isActive) return;
+
     setEditData(item);
     setOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setExamTypes(examTypes.filter((item) => item.id !== id));
+  const handleDelete = async (item) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${item.examType}"?`,
+    );
+
+    if (!confirmed) return;
+
+    setActionSlug(item.slug);
+
+    await deleteExamType(item.slug);
+
+    setActionSlug(null);
+  };
+
+  const handleRestore = async (item) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to restore "${item.examType}"?`,
+    );
+
+    if (!confirmed) return;
+
+    setActionSlug(item.slug);
+
+    await restoreExamType(item.slug);
+
+    setActionSlug(null);
+  };
+
+  const handleClose = () => {
+    if (submitLoading) return;
+
+    setOpen(false);
+    setEditData(null);
   };
 
   return (
@@ -53,62 +94,181 @@ export default function ExamType() {
       {/* Table Card */}
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-800">
-            <tr>
-              {["SN.", "Exam Type", "Description", "Action"].map((h) => (
-                <th key={h} className="p-4 text-left text-gray-300">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {examTypes.map((item, index) => (
-              <tr
-                key={item.id}
-                className="border-t border-gray-800 hover:bg-gray-800/40"
-              >
-                <td className="p-4 text-gray-300">{index + 1}</td>
-
-                <td className="p-4 text-white">{item.type}</td>
-
-                <td className="p-4 text-gray-400">{item.description}</td>
-
-                <td className="p-4">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg cursor-pointer"
-                    >
-                      <Edit size={17} />
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg cursor-pointer"
-                    >
-                      <Trash2 size={17} />
-                    </button>
-                  </div>
-                </td>
+        <div className="max-h-[68vh] overflow-x-auto overflow-y-auto custom-scrollbar">
+          <table className="w-full min-w-[750px]">
+            <thead className="bg-gray-800 sticky top-0 z-10">
+              <tr>
+                {["SN.", "Exam Type", "Description", "Action"].map((h) => (
+                  <th key={h} className="p-4 text-left text-gray-300">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="p-10 text-center">
+                    <div className="flex justify-center items-center gap-2 text-gray-400">
+                      <Loader2 size={22} className="animate-spin" />
+                      Loading exam types...
+                    </div>
+                  </td>
+                </tr>
+              ) : examTypes.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-10 text-center text-gray-400">
+                    No exam types found
+                  </td>
+                </tr>
+              ) : (
+                examTypes.map((item, index) => {
+                  const isActionLoading =
+                    actionSlug === item.slug && submitLoading;
+
+                  return (
+                    <tr
+                      key={item.slug}
+                      className={`border-t border-gray-800 hover:bg-gray-800/40 ${
+                        !item.isActive ? "opacity-70" : ""
+                      }`}
+                    >
+                      <td className="p-4 text-gray-300">{index + 1}</td>
+
+                      <td
+                        className={`p-4 ${
+                          item.isActive
+                            ? "text-white"
+                            : "text-gray-500 line-through"
+                        }`}
+                      >
+                        {item.examType}
+                      </td>
+
+                      <td className="p-4 text-gray-400">
+                        {item.description || "-"}
+                      </td>
+
+                      <td className="p-4">
+                        <div className="flex gap-3">
+                          {item.isActive ? (
+                            <>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                disabled={submitLoading}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <Edit size={17} />
+                              </button>
+
+                              <button
+                                onClick={() => handleDelete(item)}
+                                disabled={submitLoading}
+                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isActionLoading ? (
+                                  <Loader2 size={17} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={17} />
+                                )}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleRestore(item)}
+                              disabled={submitLoading}
+                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isActionLoading ? (
+                                <Loader2 size={17} className="animate-spin" />
+                              ) : (
+                                <RotateCcw size={17} />
+                              )}
+                              Restore
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <ExamTypeModal
-        open={open}
-        close={() => setOpen(false)}
-        editData={editData}
-      />
+      <ExamTypeModal open={open} close={handleClose} editData={editData} />
     </div>
   );
 }
 
 function ExamTypeModal({ open, close, editData }) {
+  const { createExamType, updateExamType, submitLoading } = useExamTypeStore();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(examTypeSchema),
+    defaultValues: {
+      examType: "",
+      description: "",
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (editData) {
+      reset({
+        examType: editData.examType || "",
+        description: editData.description || "",
+      });
+
+      return;
+    }
+
+    reset({
+      examType: "",
+      description: "",
+    });
+  }, [open, editData, reset]);
+
+  const handleClose = () => {
+    if (submitLoading) return;
+
+    reset({
+      examType: "",
+      description: "",
+    });
+
+    close();
+  };
+
+  const onSubmit = async (values) => {
+    const payload = {
+      examType: values.examType.trim(),
+      description: values.description?.trim() || null,
+    };
+
+    const success = editData
+      ? await updateExamType(editData.slug, payload)
+      : await createExamType(payload);
+
+    if (!success) return;
+
+    reset({
+      examType: "",
+      description: "",
+    });
+
+    close();
+  };
+
   if (!open) return null;
 
   return (
@@ -122,50 +282,80 @@ function ExamTypeModal({ open, close, editData }) {
           </h2>
 
           <X
-            onClick={close}
+            onClick={handleClose}
             className="text-gray-400 cursor-pointer hover:text-white"
           />
         </div>
 
-        {/* Body */}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Body */}
 
-        <div className="p-5 space-y-5">
-          <div>
-            <label className="text-gray-400">Exam Type</label>
+          <div className="p-5 space-y-5">
+            <div>
+              <label className="text-gray-400">Exam Type</label>
 
-            <input
-              defaultValue={editData?.type || ""}
-              placeholder="Enter Exam Type"
-              className="mt-2 bg-gray-800 border border-gray-700 rounded-xl p-3 text-white w-full outline-none"
-            />
+              <input
+                {...register("examType")}
+                placeholder="Enter Exam Type"
+                disabled={submitLoading}
+                className="mt-2 bg-gray-800 border border-gray-700 rounded-xl p-3 text-white w-full outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+
+              {errors.examType && (
+                <p className="text-red-400 text-sm mt-1">
+                  {errors.examType.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-gray-400">Description</label>
+
+              <textarea
+                {...register("description")}
+                placeholder="Enter Description"
+                rows="4"
+                disabled={submitLoading}
+                className="mt-2 bg-gray-800 border border-gray-700 rounded-xl p-3 text-white w-full resize-none outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+
+              {errors.description && (
+                <p className="text-red-400 text-sm mt-1">
+                  {errors.description.message}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="text-gray-400">Description</label>
+          {/* Footer */}
 
-            <textarea
-              defaultValue={editData?.description || ""}
-              placeholder="Enter Description"
-              rows="4"
-              className="mt-2 bg-gray-800 border border-gray-700 rounded-xl p-3 text-white w-full resize-none outline-none"
-            />
+          <div className="p-5 border-t border-gray-800 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={submitLoading}
+              className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={submitLoading}
+              className="bg-green-500 hover:bg-green-600 px-5 py-2 rounded-lg text-white cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitLoading && <Loader2 size={17} className="animate-spin" />}
+
+              {submitLoading
+                ? editData
+                  ? "Updating..."
+                  : "Saving..."
+                : editData
+                  ? "Update"
+                  : "Save"}
+            </button>
           </div>
-        </div>
-
-        {/* Footer */}
-
-        <div className="p-5 border-t border-gray-800 flex justify-end gap-3">
-          <button
-            onClick={close}
-            className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg text-white cursor-pointer"
-          >
-            Cancel
-          </button>
-
-          <button className="bg-green-500 hover:bg-green-600 px-5 py-2 rounded-lg text-white cursor-pointer">
-            {editData ? "Update" : "Save"}
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );

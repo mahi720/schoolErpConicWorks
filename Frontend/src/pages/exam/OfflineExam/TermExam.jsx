@@ -14,6 +14,7 @@ export default function TermExam() {
       title: "TERM 2 (BAL VATIKA to CLASS 2)",
       start: "06-03-2026",
       end: "13-03-2026",
+      publishResult: "Yes",
       board: "CBSE",
       type: "Term 2",
       status: "Scheduled",
@@ -24,6 +25,7 @@ export default function TermExam() {
       title: "PRE ANNUAL - IX",
       start: "02-02-2026",
       end: "13-02-2026",
+      publishResult: "No",
       board: "CBSE",
       type: "Pre-Board",
       status: "Scheduled",
@@ -68,6 +70,7 @@ export default function TermExam() {
                 "Academic Year",
                 "Exam Title",
                 "Schedule",
+                "Publish Result",
                 "Board",
                 "Type",
                 "Status",
@@ -99,6 +102,7 @@ export default function TermExam() {
                   </div>
                 </td>
 
+                <td className="p-4 text-gray-300">{item.publishResult}</td>
                 <td className="p-4 text-gray-300">{item.board}</td>
 
                 <td className="p-4 text-gray-300 whitespace-nowrap">
@@ -174,6 +178,21 @@ function ExamModal({ open, close, editData }) {
         {/* Body */}
 
         <div className="p-5 grid grid-cols-2 gap-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-gray-400">
+              Academic Year <span className="text-red-500"> *</span>
+            </label>
+            <select className="bg-gray-800 border cursor-pointer border-gray-700 rounded-xl p-3 text-white">
+              <option>
+                {editData?.academicYear || "Select Academic Year"}
+              </option>
+
+              <option>2024-2025</option>
+
+              <option>2025-2026</option>
+            </select>
+          </div>
+
           <div className="flex flex-col gap-2">
             <label className="text-gray-400">
               Board <span className="text-red-500"> *</span>

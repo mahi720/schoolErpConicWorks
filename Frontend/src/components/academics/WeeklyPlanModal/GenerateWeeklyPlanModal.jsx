@@ -805,7 +805,7 @@ export default function GenerateWeeklyPlanModal({
                 </select>
               </Field>
 
-              <Field label="Section" required>
+              <Field label="Section">
                 <select
                   value={formData.sectionTitle}
                   onChange={(event) =>
@@ -956,7 +956,7 @@ export default function GenerateWeeklyPlanModal({
                         disabled={submitLoading || lessonDeleteLoading}
                         className="bg-red-500 p-2 rounded-lg cursor-pointer text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {deletingLessonSlug === item.slug ? (
+                        {item.slug && deletingLessonSlug === item.slug ? (
                           <Loader2 size={18} className="animate-spin" />
                         ) : (
                           <Trash size={18} />
