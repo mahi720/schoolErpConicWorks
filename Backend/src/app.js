@@ -26,6 +26,7 @@ import studentAttendanceRoutes from "./routes/academic/studentAttendance/student
 import studentPromotionRoutes from "./routes/academic/studentPromotion/studentPromotion.routes.js";
 import studentHealthManagementRoutes from "./routes/academic/studentHealthManagement/studentHealthManagement.routes.js";
 import weeklyPlanRoutes from "./routes/academic/weeklyPlan/weeklyPlan.routes.js";
+import examTypeRoutes from "./routes/examManager/examType/examType.routes.js"
 
 
 const app = express()
@@ -99,6 +100,7 @@ app.use("/api/student-attendances", studentAttendanceRoutes);
 app.use("/api/student-promotions", studentPromotionRoutes);
 app.use("/api/student-health-management", studentHealthManagementRoutes);
 app.use("/api/weekly-plans", weeklyPlanRoutes);
+app.use("/api/exam-types", examTypeRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");

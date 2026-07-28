@@ -53,32 +53,36 @@ model School {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  users                    User[]
-  sessions                 Session[]
-  boards                   Board[]
-  classes                  Class[]
-  sections                 Section[]
-  streams                  Stream[]
-  classMappings            ClassSectionStreamMapping[]
-  subjects                 Subject[]
-  addSubjectToClasses      AddSubjectToClass[]
-  feeTypes                 FeeType[]
-  remarks                  Remark[]
-  paymentInfo              PaymentInfo?
-  students                 Student[]
-  studentHealths           StudentHealth[]
-  studentVaccinations      StudentVaccination[]
-  studentDocuments         StudentDocument[]
-  studentAcademicMappings  StudentAcademicRollSectionStreamMapping[]
-  studentPromotions        StudentPromotion[]
-  studentHealthAssessments StudentHealthAssessment[]
-  studentOtherInformations StudentOtherInformation[]
-  academicCalendars        AcademicCalendar[]
-  weeklyPlans              WeeklyPlan[]
-  weeklyPlanLessons        WeeklyPlanLesson[]
-  studentAttendances       StudentAttendance[]
-  studentAttendanceDays    StudentAttendanceDay[]
-  studentAttendanceLogs    StudentAttendanceLog[]
+  users                       User[]
+  sessions                    Session[]
+  boards                      Board[]
+  classes                     Class[]
+  sections                    Section[]
+  streams                     Stream[]
+  classMappings               ClassSectionStreamMapping[]
+  subjects                    Subject[]
+  addSubjectToClasses         AddSubjectToClass[]
+  feeTypes                    FeeType[]
+  remarks                     Remark[]
+  paymentInfo                 PaymentInfo?
+  students                    Student[]
+  studentHealths              StudentHealth[]
+  studentVaccinations         StudentVaccination[]
+  studentDocuments            StudentDocument[]
+  studentAcademicMappings     StudentAcademicRollSectionStreamMapping[]
+  studentPromotions           StudentPromotion[]
+  studentHealthAssessments    StudentHealthAssessment[]
+  studentOtherInformations    StudentOtherInformation[]
+  academicCalendars           AcademicCalendar[]
+  weeklyPlans                 WeeklyPlan[]
+  weeklyPlanLessons           WeeklyPlanLesson[]
+  studentAttendances          StudentAttendance[]
+  studentAttendanceDays       StudentAttendanceDay[]
+  studentAttendanceLogs       StudentAttendanceLog[]
+  examTypes                   ExamType[]
+  termExams                   TermExam[]
+  termExamClassConfigurations TermExamClassConfiguration[]
+  termExamTimeTables          TermExamTimeTable[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -208,8 +212,8 @@ model Session {
   studentAttendanceLogs    StudentAttendanceLog[]
 
   academicCalendars AcademicCalendar[]
-
-  weeklyPlans WeeklyPlan[]
+  weeklyPlans       WeeklyPlan[]
+  termExams         TermExam[]
 
   @@unique([schoolSlug, name])
   @@map("sessions")
@@ -244,6 +248,7 @@ model Board {
 
   studentAttendanceDays StudentAttendanceDay[]
   studentAttendanceLogs StudentAttendanceLog[]
+  termExams             TermExam[]
 
   studentPromotionsPrevious StudentPromotion[] @relation("PreviousPromotionBoard")
   studentPromotionsNew      StudentPromotion[] @relation("NewPromotionBoard")
@@ -281,12 +286,13 @@ model Class {
 
   studentAcademicMappings StudentAcademicRollSectionStreamMapping[]
 
-  studentPromotionsPrevious StudentPromotion[]     @relation("PreviousPromotionClass")
-  studentPromotionsNew      StudentPromotion[]     @relation("NewPromotionClass")
+  studentPromotionsPrevious StudentPromotion[]           @relation("PreviousPromotionClass")
+  studentPromotionsNew      StudentPromotion[]           @relation("NewPromotionClass")
   weeklyPlans               WeeklyPlan[]
   studentAttendances        StudentAttendance[]
   studentAttendanceDays     StudentAttendanceDay[]
   studentAttendanceLogs     StudentAttendanceLog[]
+  classConfigurations       TermExamClassConfiguration[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -358,6 +364,7 @@ model Stream {
   studentAttendances    StudentAttendance[]
   studentAttendanceDays StudentAttendanceDay[]
   studentAttendanceLogs StudentAttendanceLog[]
+  termExamTimeTables    TermExamTimeTable[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -460,8 +467,9 @@ model AddSubjectToClass {
 
   studyType StudyType
 
-  subjectTopics SubjectTopic[]
-  marksConfigs  SubjectMarksConfig[]
+  subjectTopics      SubjectTopic[]
+  marksConfigs       SubjectMarksConfig[]
+  termExamTimeTables TermExamTimeTable[]
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -1623,8 +1631,8 @@ model WeeklyPlan {
   classSlug String @db.VarChar(50)
   class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
 
-  sectionSlug String  @db.VarChar(50)
-  section     Section @relation(fields: [sectionSlug], references: [slug], onDelete: Cascade)
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: Cascade)
 
   userSlug String @db.VarChar(50)
   user     User   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
@@ -1714,7 +1722,146 @@ model WeeklyPlanLesson {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([weeklyPlanSlug, lessonOrder], map: "uq_weekly_plan_lesson_order")
+  // @@unique([weeklyPlanSlug, lessonOrder], map: "uq_weekly_plan_lesson_order")
   @@index([schoolSlug, weeklyPlanSlug], map: "idx_weekly_plan_lesson")
   @@map("weeklyPlanLessons")
+}
+
+// Exam Module
+
+// Exam Type
+model ExamType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  examType    String
+  description String?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  termExams                   TermExam[]
+  termExamClassConfigurations TermExamClassConfiguration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, examType])
+  @@map("exam_types")
+}
+
+model TermExam {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  sessionSlug String  @db.VarChar(50)
+  session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
+
+  boardSlug String @db.VarChar(50)
+  board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
+
+  examTypeSlug String   @db.VarChar(50)
+  examType     ExamType @relation(fields: [examTypeSlug], references: [slug], onDelete: Restrict)
+
+  examTitle String
+  startDate DateTime
+  endDate   DateTime
+
+  examStatus String @default("scheduled")
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  termExamClassConfigurations TermExamClassConfiguration[]
+
+  @@unique([schoolSlug, sessionSlug, boardSlug, examTitle])
+  @@index([schoolSlug], map: "idx_term_exam_school")
+  @@index([sessionSlug], map: "idx_term_exam_session")
+  @@index([boardSlug], map: "idx_term_exam_board")
+  @@index([examTypeSlug], map: "idx_term_exam_type")
+  @@map("term_exams")
+}
+
+model TermExamTimeTable {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  termExamClassConfigurationSlug String                     @db.VarChar(50)
+  termExamClassConfiguration     TermExamClassConfiguration @relation(fields: [termExamClassConfigurationSlug], references: [slug], onDelete: Cascade)
+
+  classSubjectSlug String            @db.VarChar(50)
+  classSubject     AddSubjectToClass @relation(fields: [classSubjectSlug], references: [slug], onDelete: Cascade)
+
+  streamSlug String?
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  studyMode String @default("Theory")
+
+  maxMarks Decimal @db.Decimal(8, 2)
+  minMarks Decimal @db.Decimal(8, 2)
+
+  examDate      DateTime
+  examTime      String   @db.VarChar(20)
+  duration      Int
+  questionPaper String?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, termExamClassConfigurationSlug, classSubjectSlug, streamSlug])
+  @@index([schoolSlug], map: "idx_tett_school")
+  @@index([termExamClassConfigurationSlug], map: "idx_tett_config")
+  @@index([classSubjectSlug], map: "idx_tett_subject")
+  @@index([streamSlug], map: "idx_tett_stream")
+  @@map("term_exam_time_tables")
+}
+
+model TermExamClassConfiguration {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  termExamSlug String   @db.VarChar(50)
+  termExam     TermExam @relation(fields: [termExamSlug], references: [slug], onDelete: Cascade)
+
+  classSlug String @db.VarChar(50)
+  class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
+
+  publishResult Boolean @default(false)
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeTables TermExamTimeTable[]
+  examType   ExamType?           @relation(fields: [examTypeId], references: [id])
+  examTypeId Int?
+
+  @@unique([schoolSlug, termExamSlug, classSlug])
+  @@index([schoolSlug], map: "idx_tecc_school")
+  @@index([termExamSlug], map: "idx_tecc_exam")
+  @@index([classSlug], map: "idx_tecc_class")
+  @@map("term_exam_class_configurations")
 }
