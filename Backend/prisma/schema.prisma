@@ -89,6 +89,9 @@ model School {
   periodicTests                   PeriodicTest[]
   periodicTestTimeTables          periodicTestTimeTable[]
   periodicTestClassConfigurations PeriodicTestClassConfiguration[]
+  periodicTestMarkSubmissions     PeriodicTestMarkSubmission[]
+  periodicTestStudentMarks        PeriodicTestStudentMark[]
+  periodicTestMarkAuditLogs       PeriodicTestMarkAuditLog[]
 
   @@map("schools")
 }
@@ -164,6 +167,10 @@ model User {
   refreshToken String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  submittedPeriodicTestMarks PeriodicTestMarkSubmission[] @relation("PeriodicTestMarkSubmittedBy")
+  lockedPeriodicTestMarks    PeriodicTestMarkSubmission[] @relation("PeriodicTestMarkLockedBy")
+  periodicTestMarkAuditLogs  PeriodicTestMarkAuditLog[]   @relation("PeriodicTestMarkAuditPerformedBy")
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -302,6 +309,7 @@ model Class {
   createdAt                       DateTime                         @default(now())
   updatedAt                       DateTime                         @updatedAt
   periodicTestClassConfigurations PeriodicTestClassConfiguration[]
+  periodicTestMarkAuditLogs       PeriodicTestMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, classTitle])
   @@map("classes")
@@ -336,8 +344,10 @@ model Section {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
+  periodicTestMarkAuditLogs   PeriodicTestMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, sectionTitle])
   @@map("sections")
@@ -373,8 +383,10 @@ model Stream {
   termExamTimeTables     TermExamTimeTable[]
   periodicTestTimeTables periodicTestTimeTable[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  periodicTestMarkAuditLogs   PeriodicTestMarkAuditLog[]
+  periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
 
   @@unique([schoolSlug, boardSlug, streamTitle])
   @@map("streams")
@@ -482,10 +494,12 @@ model AddSubjectToClass {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  weeklyPlans            WeeklyPlan[]
-  periodicTestTimeTables periodicTestTimeTable[]
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  weeklyPlans                 WeeklyPlan[]
+  periodicTestTimeTables      periodicTestTimeTable[]
+  periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
+  periodicTestMarkAuditLogs   PeriodicTestMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, sessionSlug, classSlug, streamSlug, subjectSlug])
   @@map("add_subject_to_classes")
@@ -710,8 +724,10 @@ model Student {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  periodicTestStudentMarks  PeriodicTestStudentMark[]
+  periodicTestMarkAuditLogs PeriodicTestMarkAuditLog[]
 
   @@unique([schoolSlug, admissionNumber])
   @@index([schoolSlug])
@@ -939,6 +955,8 @@ model StudentAcademicRollSectionStreamMapping {
 
   previousPromotionMappings StudentPromotion[] @relation("PreviousAcademicMappingPromotion")
   newPromotionMappings      StudentPromotion[] @relation("NewAcademicMappingPromotion")
+
+  periodicTestStudentMarks PeriodicTestStudentMark[]
 
   status    String    @default("active")
   isActive  Boolean   @default(true)
@@ -1737,7 +1755,7 @@ model WeeklyPlanLesson {
 
 // Exam Module
 
-// Exam Type
+// Exam Type 
 model ExamType {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
@@ -1900,6 +1918,7 @@ model PeriodicTest {
   createdAt                       DateTime                         @default(now())
   updatedAt                       DateTime                         @updatedAt
   periodicTestClassConfigurations PeriodicTestClassConfiguration[]
+  periodicTestMarkAuditLogs       PeriodicTestMarkAuditLog[]
 
   @@unique([schoolSlug, sessionSlug, boardSlug, testTitle])
   @@index([schoolSlug], map: "idx_periodic_test_school")
@@ -1968,13 +1987,239 @@ model PeriodicTestClassConfiguration {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  periodicTestTimeTables periodicTestTimeTable[]
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  periodicTestTimeTables      periodicTestTimeTable[]
+  periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
 
   @@unique([schoolSlug, periodicTestSlug, classSlug])
   @@index([schoolSlug], map: "idx_tecc_school")
   @@index([periodicTestSlug], map: "idx_tecc_test")
   @@index([classSlug], map: "idx_tecc_class")
   @@map("periodic_test_class_configurations")
+}
+
+// mark submission 
+
+model PeriodicTestMarkSubmission {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  periodicTestClassConfigurationSlug String                         @db.VarChar(50)
+  periodicTestClassConfiguration     PeriodicTestClassConfiguration @relation(fields: [periodicTestClassConfigurationSlug], references: [slug], onDelete: Cascade)
+
+  classSubjectSlug String            @db.VarChar(50)
+  classSubject     AddSubjectToClass @relation(fields: [classSubjectSlug], references: [slug], onDelete: Cascade)
+
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  scopeKey String @db.VarChar(120)
+
+  submittedBySlug String? @db.VarChar(50)
+  submittedBy     User?   @relation("PeriodicTestMarkSubmittedBy", fields: [submittedBySlug], references: [slug], onDelete: SetNull)
+
+  lockedBySlug String? @db.VarChar(50)
+  lockedBy     User?   @relation("PeriodicTestMarkLockedBy", fields: [lockedBySlug], references: [slug], onDelete: SetNull)
+
+  maxMarks Decimal @db.Decimal(8, 2)
+  minMarks Decimal @db.Decimal(8, 2)
+
+  isLocked    Boolean   @default(false)
+  lockedAt    DateTime?
+  submittedAt DateTime?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  studentMarks              PeriodicTestStudentMark[]
+  periodicTestMarkAuditLogs PeriodicTestMarkAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, periodicTestClassConfigurationSlug, classSubjectSlug, scopeKey], map: "uq_periodic_mark_submission")
+  @@index([schoolSlug], map: "idx_ptms_school")
+  @@index([periodicTestClassConfigurationSlug], map: "idx_ptms_configuration")
+  @@index([classSubjectSlug], map: "idx_ptms_class_subject")
+  @@index([sectionSlug], map: "idx_ptms_section")
+  @@index([streamSlug], map: "idx_ptms_stream")
+  @@index([submittedBySlug], map: "idx_ptms_submitted_by")
+  @@index([lockedBySlug], map: "idx_ptms_locked_by")
+  @@map("periodic_test_mark_submissions")
+}
+
+model PeriodicTestStudentMark {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  submissionSlug String                     @db.VarChar(50)
+  submission     PeriodicTestMarkSubmission @relation(fields: [submissionSlug], references: [slug], onDelete: Cascade)
+
+  studentSlug String  @db.VarChar(50)
+  student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
+
+  academicMappingSlug String                                  @db.VarChar(50)
+  academicMapping     StudentAcademicRollSectionStreamMapping @relation(fields: [academicMappingSlug], references: [slug], onDelete: Cascade)
+
+  rollNo Int?
+
+  obtainedMarks Decimal? @db.Decimal(8, 2)
+
+  markStatus PeriodicTestStudentMarkStatus @default(PRESENT)
+
+  remarks String? @db.VarChar(255)
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  periodicTestMarkAuditLogs PeriodicTestMarkAuditLog[]
+
+  @@unique([submissionSlug, studentSlug], map: "uq_periodic_student_mark")
+  @@index([schoolSlug], map: "idx_ptsm_school")
+  @@index([submissionSlug], map: "idx_ptsm_submission")
+  @@index([studentSlug], map: "idx_ptsm_student")
+  @@index([academicMappingSlug], map: "idx_ptsm_academic_mapping")
+  @@map("periodic_test_student_marks")
+}
+
+enum PeriodicTestStudentMarkStatus {
+  PRESENT
+  ABSENT
+  EXEMPTED
+  WITHHELD
+}
+
+// periodic test audit log (mark submission logs)
+
+model PeriodicTestMarkAuditLog {
+  id   BigInt @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  submissionSlug String?                     @db.VarChar(50)
+  submission     PeriodicTestMarkSubmission? @relation(fields: [submissionSlug], references: [slug], onDelete: SetNull)
+
+  studentMarkSlug String?                  @db.VarChar(50)
+  studentMark     PeriodicTestStudentMark? @relation(fields: [studentMarkSlug], references: [slug], onDelete: SetNull)
+
+  periodicTestSlug String?       @db.VarChar(50)
+  periodicTest     PeriodicTest? @relation(fields: [periodicTestSlug], references: [slug], onDelete: SetNull)
+
+  classSlug String? @db.VarChar(50)
+  class     Class?  @relation(fields: [classSlug], references: [slug], onDelete: SetNull)
+
+  classSubjectSlug String?            @db.VarChar(50)
+  classSubject     AddSubjectToClass? @relation(fields: [classSubjectSlug], references: [slug], onDelete: SetNull)
+
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  studentSlug String?  @db.VarChar(50)
+  student     Student? @relation(fields: [studentSlug], references: [slug], onDelete: SetNull)
+
+  performedBySlug String? @db.VarChar(50)
+  performedBy     User?   @relation("PeriodicTestMarkAuditPerformedBy", fields: [performedBySlug], references: [slug], onDelete: SetNull)
+
+  action PeriodicTestMarkAuditAction
+  result PeriodicTestMarkAuditResult @default(SUCCESS)
+
+  actorName  String? @db.VarChar(150)
+  actorEmail String? @db.VarChar(191)
+  actorRole  String? @db.VarChar(50)
+
+  periodicTestTitle String? @db.VarChar(191)
+  academicYear      String? @db.VarChar(50)
+  boardTitle        String? @db.VarChar(100)
+  classTitle        String? @db.VarChar(100)
+  subjectTitle      String? @db.VarChar(150)
+  studyMode         String? @db.VarChar(50)
+  sectionTitle      String? @db.VarChar(100)
+  streamTitle       String? @db.VarChar(100)
+
+  studentName     String? @db.VarChar(191)
+  admissionNumber String? @db.VarChar(100)
+  rollNo          Int?
+
+  previousMarks Decimal? @db.Decimal(8, 2)
+  newMarks      Decimal? @db.Decimal(8, 2)
+
+  previousMarkStatus PeriodicTestStudentMarkStatus?
+  newMarkStatus      PeriodicTestStudentMarkStatus?
+
+  previousIsLocked Boolean?
+  newIsLocked      Boolean?
+
+  remarks String? @db.VarChar(500)
+
+  oldData       Json?
+  newData       Json?
+  changedFields Json?
+  requestBody   Json?
+
+  ipAddress        String? @db.VarChar(100)
+  forwardedFor     String? @db.VarChar(500)
+  userAgent        String? @db.Text
+  requestMethod    String? @db.VarChar(10)
+  requestPath      String? @db.VarChar(500)
+  requestId        String? @db.VarChar(100)
+  deviceIdentifier String? @db.VarChar(191)
+
+  errorMessage String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolSlug], map: "idx_ptmal_school")
+  @@index([submissionSlug], map: "idx_ptmal_submission")
+  @@index([studentMarkSlug], map: "idx_ptmal_student_mark")
+  @@index([periodicTestSlug], map: "idx_ptmal_periodic_test")
+  @@index([classSlug], map: "idx_ptmal_class")
+  @@index([classSubjectSlug], map: "idx_ptmal_class_subject")
+  @@index([sectionSlug], map: "idx_ptmal_section")
+  @@index([studentSlug], map: "idx_ptmal_student")
+  @@index([performedBySlug], map: "idx_ptmal_performed_by")
+  @@index([action], map: "idx_ptmal_action")
+  @@index([result], map: "idx_ptmal_result")
+  @@index([createdAt], map: "idx_ptmal_created_at")
+  @@index([schoolSlug, periodicTestSlug, createdAt], map: "idx_ptmal_exam_history")
+  @@index([schoolSlug, studentSlug, createdAt], map: "idx_ptmal_student_history")
+  @@map("periodic_test_mark_audit_logs")
+}
+
+enum PeriodicTestMarkAuditResult {
+  SUCCESS
+  FAILED
+}
+
+enum PeriodicTestMarkAuditAction {
+  CREATE_SUBMISSION
+  SAVE_MARKS
+  UPDATE_MARKS
+  BULK_UPDATE_MARKS
+  MARK_PRESENT
+  MARK_ABSENT
+  LOCK_MARKS
+  UNLOCK_MARKS
+  DELETE_MARKS
+  RESTORE_MARKS
+  GENERATE_PDF
+  VIEW_MARKS
 }

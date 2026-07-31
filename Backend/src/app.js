@@ -29,6 +29,7 @@ import weeklyPlanRoutes from "./routes/academic/weeklyPlan/weeklyPlan.routes.js"
 import examTypeRoutes from "./routes/examManager/examType/examType.routes.js"
 import termExamTimeTableRoutes from "./routes/examManager/termExamTimeTable/termExamTimeTableRoutes.js";
 import periodicTestRoutes from "./routes/examManager/periodicTestTimeTable/periodicTestTimeTable.routes.js";
+import periodicTestMarkSubmissionRoutes from "./routes/examManager/markSubmission/periodicTestMarkSubmission/periodicTestMarkSubmission.routes.js";
 
 
 const app = express()
@@ -105,6 +106,7 @@ app.use("/api/weekly-plans", weeklyPlanRoutes);
 app.use("/api/exam-types", examTypeRoutes);
 app.use("/api", termExamTimeTableRoutes);
 app.use("/api/periodic-tests", periodicTestRoutes);
+app.use("/api/periodic-test-mark-submissions", periodicTestMarkSubmissionRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
