@@ -92,6 +92,10 @@ model School {
   periodicTestMarkSubmissions     PeriodicTestMarkSubmission[]
   periodicTestStudentMarks        PeriodicTestStudentMark[]
   periodicTestMarkAuditLogs       PeriodicTestMarkAuditLog[]
+  termExamMarkSubmissions         TermExamMarkSubmission[]
+  termExamStudentMarks            TermExamStudentMark[]
+  termExamStudentComponentMarks   TermExamStudentComponentMark[]
+  termExamMarkAuditLogs           TermExamMarkAuditLog[]
 
   @@map("schools")
 }
@@ -171,6 +175,9 @@ model User {
   submittedPeriodicTestMarks PeriodicTestMarkSubmission[] @relation("PeriodicTestMarkSubmittedBy")
   lockedPeriodicTestMarks    PeriodicTestMarkSubmission[] @relation("PeriodicTestMarkLockedBy")
   periodicTestMarkAuditLogs  PeriodicTestMarkAuditLog[]   @relation("PeriodicTestMarkAuditPerformedBy")
+  submittedTermExamMarks     TermExamMarkSubmission[]     @relation("TermExamMarkSubmittedBy")
+  lockedTermExamMarks        TermExamMarkSubmission[]     @relation("TermExamMarkLockedBy")
+  termExamMarkAuditLogs      TermExamMarkAuditLog[]       @relation("TermExamMarkAuditPerformedBy")
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -310,6 +317,7 @@ model Class {
   updatedAt                       DateTime                         @updatedAt
   periodicTestClassConfigurations PeriodicTestClassConfiguration[]
   periodicTestMarkAuditLogs       PeriodicTestMarkAuditLog[]
+  termExamMarkAuditLogs           TermExamMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, classTitle])
   @@map("classes")
@@ -348,6 +356,8 @@ model Section {
   updatedAt                   DateTime                     @updatedAt
   periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
   periodicTestMarkAuditLogs   PeriodicTestMarkAuditLog[]
+  termExamMarkSubmissions     TermExamMarkSubmission[]
+  termExamMarkAuditLogs       TermExamMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, sectionTitle])
   @@map("sections")
@@ -387,6 +397,8 @@ model Stream {
   updatedAt                   DateTime                     @updatedAt
   periodicTestMarkAuditLogs   PeriodicTestMarkAuditLog[]
   periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
+  termExamMarkSubmissions     TermExamMarkSubmission[]
+  termExamMarkAuditLogs       TermExamMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, streamTitle])
   @@map("streams")
@@ -500,6 +512,8 @@ model AddSubjectToClass {
   periodicTestTimeTables      periodicTestTimeTable[]
   periodicTestMarkSubmissions PeriodicTestMarkSubmission[]
   periodicTestMarkAuditLogs   PeriodicTestMarkAuditLog[]
+  termExamMarkSubmissions     TermExamMarkSubmission[]
+  termExamMarkAuditLogs       TermExamMarkAuditLog[]
 
   @@unique([schoolSlug, boardSlug, sessionSlug, classSlug, streamSlug, subjectSlug])
   @@map("add_subject_to_classes")
@@ -553,8 +567,9 @@ model SubjectMarksConfig {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  termExamStudentComponentMarks TermExamStudentComponentMark[]
 
   @@unique([addedSubjectToClassSlug, componentName])
   @@index([addedSubjectToClassSlug])
@@ -728,6 +743,8 @@ model Student {
   updatedAt                 DateTime                   @updatedAt
   periodicTestStudentMarks  PeriodicTestStudentMark[]
   periodicTestMarkAuditLogs PeriodicTestMarkAuditLog[]
+  termExamStudentMarks      TermExamStudentMark[]
+  termExamMarkAuditLogs     TermExamMarkAuditLog[]
 
   @@unique([schoolSlug, admissionNumber])
   @@index([schoolSlug])
@@ -962,8 +979,9 @@ model StudentAcademicRollSectionStreamMapping {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  termExamStudentMarks TermExamStudentMark[]
 
   @@unique([schoolSlug, studentSlug, sessionSlug], map: "uq_student_session_mapping")
   @@index([schoolSlug], map: "idx_sarm_school")
@@ -1848,8 +1866,10 @@ model TermExamTimeTable {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  termExamMarkSubmissions       TermExamMarkSubmission[]
+  termExamStudentComponentMarks TermExamStudentComponentMark[]
 
   @@unique([schoolSlug, termExamClassConfigurationSlug, classSubjectSlug, streamSlug])
   @@index([schoolSlug], map: "idx_tett_school")
@@ -2000,6 +2020,7 @@ model PeriodicTestClassConfiguration {
 }
 
 // mark submission 
+// periodic/unit test mar submission model
 
 model PeriodicTestMarkSubmission {
   id   Int    @id @default(autoincrement())
@@ -2222,4 +2243,291 @@ enum PeriodicTestMarkAuditAction {
   RESTORE_MARKS
   GENERATE_PDF
   VIEW_MARKS
+}
+
+// term exam mark submission model
+
+model TermExamMarkSubmission {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  termExamTimeTableSlug String            @db.VarChar(50)
+  termExamTimeTable     TermExamTimeTable @relation(fields: [termExamTimeTableSlug], references: [slug], onDelete: Cascade)
+
+  classSubjectSlug String            @db.VarChar(50)
+  classSubject     AddSubjectToClass @relation(fields: [classSubjectSlug], references: [slug], onDelete: Cascade)
+
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  scopeKey String @db.VarChar(150)
+
+  totalMaxMarks Decimal  @db.Decimal(8, 2)
+  totalMinMarks Decimal? @db.Decimal(8, 2)
+
+  submittedBySlug String? @db.VarChar(50)
+  submittedBy     User?   @relation("TermExamMarkSubmittedBy", fields: [submittedBySlug], references: [slug], onDelete: SetNull)
+
+  lockedBySlug String? @db.VarChar(50)
+  lockedBy     User?   @relation("TermExamMarkLockedBy", fields: [lockedBySlug], references: [slug], onDelete: SetNull)
+
+  submittedAt DateTime?
+  isLocked    Boolean   @default(false)
+  lockedAt    DateTime?
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  studentMarks TermExamStudentMark[]
+  auditLogs    TermExamMarkAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, termExamTimeTableSlug, classSubjectSlug, scopeKey], map: "uq_term_exam_mark_submission")
+  @@index([schoolSlug], map: "idx_tems_school")
+  @@index([termExamTimeTableSlug], map: "idx_tems_timetable")
+  @@index([classSubjectSlug], map: "idx_tems_class_subject")
+  @@index([sectionSlug], map: "idx_tems_section")
+  @@index([streamSlug], map: "idx_tems_stream")
+  @@index([submittedBySlug], map: "idx_tems_submitted_by")
+  @@index([lockedBySlug], map: "idx_tems_locked_by")
+  @@map("term_exam_mark_submissions")
+}
+
+model TermExamStudentMark {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  submissionSlug String                 @db.VarChar(50)
+  submission     TermExamMarkSubmission @relation(fields: [submissionSlug], references: [slug], onDelete: Cascade)
+
+  studentSlug String  @db.VarChar(50)
+  student     Student @relation(fields: [studentSlug], references: [slug], onDelete: Cascade)
+
+  academicMappingSlug String                                  @db.VarChar(50)
+  academicMapping     StudentAcademicRollSectionStreamMapping @relation(fields: [academicMappingSlug], references: [slug], onDelete: Cascade)
+
+  rollNumber Int?
+
+  totalObtainedMarks Decimal? @db.Decimal(8, 2)
+
+  markStatus TermExamStudentMarkStatus @default(PRESENT)
+
+  remarks String? @db.VarChar(500)
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  componentMarks TermExamStudentComponentMark[]
+  auditLogs      TermExamMarkAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([submissionSlug, studentSlug], map: "uq_term_exam_student_mark")
+  @@index([schoolSlug], map: "idx_tesm_school")
+  @@index([submissionSlug], map: "idx_tesm_submission")
+  @@index([studentSlug], map: "idx_tesm_student")
+  @@index([academicMappingSlug], map: "idx_tesm_academic_mapping")
+  @@map("term_exam_student_marks")
+}
+
+enum TermExamStudentMarkStatus {
+  PRESENT
+  ABSENT
+  EXEMPTED
+  WITHHELD
+}
+
+model TermExamStudentComponentMark {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  studentMarkSlug String              @db.VarChar(50)
+  studentMark     TermExamStudentMark @relation(fields: [studentMarkSlug], references: [slug], onDelete: Cascade)
+
+  subjectMarksConfigSlug String?             @db.VarChar(50)
+  subjectMarksConfig     SubjectMarksConfig? @relation(fields: [subjectMarksConfigSlug], references: [slug], onDelete: SetNull)
+
+  termExamTimeTableSlug String?            @db.VarChar(50)
+  termExamTimeTable     TermExamTimeTable? @relation(fields: [termExamTimeTableSlug], references: [slug], onDelete: SetNull)
+
+  componentKey  String                      @db.VarChar(100)
+  componentName String                      @db.VarChar(150)
+  sourceType    TermExamMarkComponentSource
+
+  maxMarks Decimal  @db.Decimal(8, 2)
+  minMarks Decimal? @db.Decimal(8, 2)
+
+  obtainedMarks Decimal? @db.Decimal(8, 2)
+
+  markStatus TermExamComponentMarkStatus @default(PRESENT)
+
+  remarks String? @db.VarChar(255)
+
+  status    String    @default("active")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  auditLogs TermExamMarkAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentMarkSlug, componentKey], map: "uq_term_student_component")
+  @@index([schoolSlug], map: "idx_tescm_school")
+  @@index([studentMarkSlug], map: "idx_tescm_student_mark")
+  @@index([subjectMarksConfigSlug], map: "idx_tescm_marks_config")
+  @@index([termExamTimeTableSlug], map: "idx_tescm_timetable")
+  @@map("term_exam_student_component_marks")
+}
+
+enum TermExamMarkComponentSource {
+  SUBJECT_MARKS_CONFIG
+  TERM_EXAM
+}
+
+enum TermExamComponentMarkStatus {
+  PRESENT
+  ABSENT
+  EXEMPTED
+  WITHHELD
+}
+
+// term exam audit log (mark submission logs)
+
+model TermExamMarkAuditLog {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  submissionSlug String?                 @db.VarChar(50)
+  submission     TermExamMarkSubmission? @relation(fields: [submissionSlug], references: [slug], onDelete: SetNull)
+
+  studentMarkSlug String?              @db.VarChar(50)
+  studentMark     TermExamStudentMark? @relation(fields: [studentMarkSlug], references: [slug], onDelete: SetNull)
+
+  componentMarkSlug String?                       @db.VarChar(50)
+  componentMark     TermExamStudentComponentMark? @relation(fields: [componentMarkSlug], references: [slug], onDelete: SetNull)
+
+  periodicTestSlug String? @db.VarChar(50)
+  termExamSlug     String? @db.VarChar(50)
+
+  classSubjectSlug String?            @db.VarChar(50)
+  classSubject     AddSubjectToClass? @relation(fields: [classSubjectSlug], references: [slug], onDelete: SetNull)
+
+  classSlug String? @db.VarChar(50)
+  class     Class?  @relation(fields: [classSlug], references: [slug], onDelete: SetNull)
+
+  sectionSlug String?  @db.VarChar(50)
+  section     Section? @relation(fields: [sectionSlug], references: [slug], onDelete: SetNull)
+
+  streamSlug String? @db.VarChar(50)
+  stream     Stream? @relation(fields: [streamSlug], references: [slug], onDelete: SetNull)
+
+  studentSlug String?  @db.VarChar(50)
+  student     Student? @relation(fields: [studentSlug], references: [slug], onDelete: SetNull)
+
+  actorSlug String? @db.VarChar(50)
+  actor     User?   @relation("TermExamMarkAuditPerformedBy", fields: [actorSlug], references: [slug], onDelete: SetNull)
+
+  action AuditAction
+  result AuditResult @default(SUCCESS)
+
+  academicYear String?
+  boardTitle   String?
+  examTitle    String?
+  classTitle   String?
+  subjectTitle String?
+  studyMode    StudyType?
+
+  sectionTitle String?
+  streamTitle  String?
+
+  studentName     String?
+  admissionNumber String?
+  rollNumber      Int?
+
+  componentKey  String?
+  componentName String?
+
+  previousMarks Decimal? @db.Decimal(8, 2)
+  newMarks      Decimal? @db.Decimal(8, 2)
+
+  previousMarkStatus String?
+  newMarkStatus      String?
+
+  previousIsLocked Boolean?
+  newIsLocked      Boolean?
+
+  requestMethod String?
+  requestUrl    String? @db.Text
+  ipAddress     String?
+  userAgent     String?
+
+  requestBody Json?
+  oldData     Json?
+  newData     Json?
+
+  changedFields Json?
+
+  remarks String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolSlug])
+  @@index([submissionSlug])
+  @@index([studentMarkSlug])
+  @@index([componentMarkSlug])
+  @@index([actorSlug])
+  @@index([studentSlug])
+  @@index([action])
+  @@index([createdAt])
+  @@map("term_exam_mark_audit_logs")
+}
+
+enum AuditAction {
+  CREATE_SUBMISSION
+  SAVE_MARKS
+  UPDATE_MARKS
+  BULK_UPDATE_MARKS
+
+  SAVE_COMPONENT_MARK
+  UPDATE_COMPONENT_MARK
+
+  MARK_PRESENT
+  MARK_ABSENT
+  MARK_EXEMPTED
+  MARK_WITHHELD
+
+  LOCK_MARKS
+  UNLOCK_MARKS
+
+  DELETE_MARKS
+  RESTORE_MARKS
+
+  VIEW_MARKS
+  GENERATE_PDF
+}
+
+enum AuditResult {
+  SUCCESS
+  FAILED
 }
