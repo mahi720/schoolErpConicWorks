@@ -901,7 +901,7 @@ export default function CoScholasticMarkSubmission() {
           {/* table */}
 
           <div className="overflow-x-auto overflow-y-auto max-h-[650px] custom-scrollbar">
-            <table className="w-full min-w-[1800px]">
+            <table className="w-full min-w-[1800px] table-fixed">
               <thead className="bg-gray-800 sticky top-0 z-10">
                 <tr>
                   <th className="p-3 w-12 text-center">
@@ -918,42 +918,50 @@ export default function CoScholasticMarkSubmission() {
                     </div>
                   </th>
 
-                  <th className="p-3 text-left text-gray-300">SN.</th>
+                  <th className="p-3 text-left text-gray-300 w-[70px]">SN.</th>
 
-                  <th className="p-3 text-left text-gray-300">Roll No.</th>
+                  <th className="p-3 text-left text-gray-300 w-[100px]">
+                    Roll No.
+                  </th>
 
-                  <th className="p-3 text-left text-gray-300">Section</th>
+                  <th className="p-3 text-left text-gray-300 w-[100px]">
+                    Section
+                  </th>
 
-                  <th className="p-3 text-left text-gray-300 min-w-[180px]">
+                  <th className="p-3 text-left text-gray-300 w-[190px]">
                     Student Name
                   </th>
 
                   {subjects.map((item) => (
                     <th
                       key={item.classSubjectSlug}
-                      className="p-3 text-left text-gray-300 min-w-[150px] align-bottom"
+                      className="p-3 text-center text-gray-300 w-[160px] align-middle"
                     >
-                      <div>{item.subjectTitle}</div>
+                      <div className="flex min-h-[70px] flex-col items-center justify-center text-center">
+                        <div className="break-words leading-5">
+                          {item.subjectTitle}
+                        </div>
 
-                      <div className="text-blue-400 mt-2 text-xs">
-                        {item.subjectType}
+                        <div className="mt-2 text-xs text-blue-400">
+                          {item.subjectType}
+                        </div>
                       </div>
                     </th>
                   ))}
 
-                  <th className="p-3 text-center text-gray-300 min-w-[100px]">
+                  <th className="w-[110px] p-3 text-center text-gray-300">
                     Remark
                   </th>
 
-                  <th className="p-3 text-center text-gray-300 min-w-[110px]">
+                  <th className="w-[120px] p-3 text-center text-gray-300">
                     Present Days
                   </th>
 
-                  <th className="p-3 text-center text-gray-300 min-w-[110px]">
+                  <th className="w-[120px] p-3 text-center text-gray-300">
                     Total Days
                   </th>
 
-                  <th className="p-3 text-center text-gray-300 min-w-[140px]">
+                  <th className="w-[150px] p-3 text-center text-gray-300">
                     Result
                   </th>
                 </tr>
@@ -987,56 +995,62 @@ export default function CoScholasticMarkSubmission() {
                         </div>
                       </td>
 
-                      <td className="p-3 text-gray-300">{index + 1}.</td>
+                      <td className="w-[70px] p-3 text-gray-300">
+                        {index + 1}.
+                      </td>
 
-                      <td className="p-3 text-gray-300">
+                      <td className="w-[100px] p-3 text-gray-300">
                         {student.rollNumber ?? "-"}
                       </td>
 
-                      <td className="p-3 text-gray-300">
+                      <td className="w-[100px] p-3 text-gray-300">
                         {student.sectionTitle || "-"}
                       </td>
 
-                      <td className="p-3 text-white">
-                        {student.studentName || "-"}
+                      <td className="w-[190px] p-3 text-white">
+                        <div className="break-words">
+                          {student.studentName || "-"}
+                        </div>
                       </td>
 
                       {subjects.map((item) => (
                         <td
                           key={`${student.studentSlug}-${item.classSubjectSlug}`}
-                          className="p-2 text-center"
+                          className="w-[160px] p-2 text-center align-middle"
                         >
-                          <select
-                            value={
-                              student.subjectGrades?.[item.classSubjectSlug]
-                                ?.grade || ""
-                            }
-                            disabled={isLocked}
-                            onChange={(event) =>
-                              handleGradeChange(
-                                student.studentSlug,
-                                item.classSubjectSlug,
-                                event.target.value,
-                              )
-                            }
-                            className={`w-[125px] bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white text-center ${
-                              isLocked
-                                ? "cursor-not-allowed opacity-60"
-                                : "cursor-pointer"
-                            }`}
-                          >
-                            <option value="">Select Grade</option>
+                          <div className="flex w-full items-center justify-center">
+                            <select
+                              value={
+                                student.subjectGrades?.[item.classSubjectSlug]
+                                  ?.grade || ""
+                              }
+                              disabled={isLocked}
+                              onChange={(event) =>
+                                handleGradeChange(
+                                  student.studentSlug,
+                                  item.classSubjectSlug,
+                                  event.target.value,
+                                )
+                              }
+                              className={`w-[130px] rounded-md border border-gray-700 bg-gray-800 px-2 py-1.5 text-center text-white ${
+                                isLocked
+                                  ? "cursor-not-allowed opacity-60"
+                                  : "cursor-pointer"
+                              }`}
+                            >
+                              <option value="">Select Grade</option>
 
-                            {GRADE_OPTIONS.map((grade) => (
-                              <option key={grade.value} value={grade.value}>
-                                {grade.label}
-                              </option>
-                            ))}
-                          </select>
+                              {GRADE_OPTIONS.map((grade) => (
+                                <option key={grade.value} value={grade.value}>
+                                  {grade.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </td>
                       ))}
 
-                      <td className="p-2 text-center">
+                      <td className="w-[110px] p-2 text-center align-middle">
                         {student.remark ? (
                           <div className="flex gap-2 justify-center">
                             <button
@@ -1065,7 +1079,7 @@ export default function CoScholasticMarkSubmission() {
                         )}
                       </td>
 
-                      <td className="p-2 text-center">
+                      <td className="w-[120px] p-2 text-center text-gray-300 align-middle">
                         <input
                           type="number"
                           min="0"
@@ -1081,7 +1095,7 @@ export default function CoScholasticMarkSubmission() {
                         />
                       </td>
 
-                      <td className="p-2 text-center">
+                      <td className="w-[120px] p-2 text-center text-gray-300 align-middle">
                         <input
                           type="number"
                           min="0"
@@ -1097,7 +1111,7 @@ export default function CoScholasticMarkSubmission() {
                         />
                       </td>
 
-                      <td className="p-2 text-center">
+                      <td className="w-[150px] p-2 text-center align-middle">
                         <select
                           value={student.result || "NOT_DECLARED"}
                           disabled={isLocked}
