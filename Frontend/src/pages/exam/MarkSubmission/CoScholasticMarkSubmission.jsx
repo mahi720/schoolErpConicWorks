@@ -1,199 +1,678 @@
-import React, { useState } from "react";
-import { Edit, FileText, Lock, Save } from "lucide-react";
-import { Eye, Pencil } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Edit, Eye, FileText, Loader2, Lock, Save } from "lucide-react";
+import toast from "react-hot-toast";
+
+import { useCoScholasticGradeSubmissionStore } from "../../../store/examManager/markSubmission/coScholasticGradeSubmission/coScholasticGradeSubmissionStore";
+
+import { useSessionStore } from "../../../store/master/session/sessionStore";
+import { useBoardStore } from "../../../store/master/board/boardStore";
+import { useClassStore } from "../../../store/master/class/classStore";
+import { useClassMappingStore } from "../../../store/master/classMapping/classMappingStore";
+import { useTermExamTimeTableStore } from "../../../store/examManager/termExamTimeTable/termExamTimeTableStore";
+
+import {
+  validateCoScholasticFilters,
+  validateSaveCoScholasticGrades,
+} from "../../../validations/examManager/markSubmission/coScholasticGradeSubmission/coScholasticGradeSubmissionValidation";
+
+const GRADE_OPTIONS = [
+  { value: "A_PLUS", label: "A+" },
+  { value: "A", label: "A" },
+  { value: "B_PLUS", label: "B+" },
+  { value: "B", label: "B" },
+  { value: "C_PLUS", label: "C+" },
+  { value: "C", label: "C" },
+  { value: "D_PLUS", label: "D+" },
+  { value: "D", label: "D" },
+  { value: "E", label: "E" },
+  {
+    value: "NEEDS_IMPROVEMENT",
+    label: "Needs Improvement",
+  },
+  {
+    value: "NOT_ASSESSED",
+    label: "Not Assessed",
+  },
+];
+
+const RESULT_OPTIONS = [
+  { value: "NOT_DECLARED", label: "Not Declared" },
+  { value: "PASS", label: "Pass" },
+  { value: "FAIL", label: "Fail" },
+  { value: "PROMOTED", label: "Promoted" },
+  { value: "DETAINED", label: "Detained" },
+];
 
 export default function CoScholasticMarkSubmission() {
-  const [selectedClass, setSelectedClass] = useState("");
   const [selected, setSelected] = useState([]);
-  const [isLocked, setIsLocked] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
-
-  const [topics, setTopics] = useState([
-    { key: "physical", title: "PHYSICAL DEVELOPMENT" },
-    { key: "socio", title: "SOCIO-EMOTIONAL & ETHICAL DEVELOPMENT" },
-    { key: "cognitive", title: "COGNITIVE DEVELOPMENT" },
-    { key: "language", title: "LANGUAGE & LITERACY DEVELOPMENT" },
-    { key: "positive", title: "POSITIVE LEARNING HABITS" },
-    { key: "aesthetic", title: "AESTHETIC & CULTURAL DEVELOPMENT" },
-    { key: "self", title: "SELF ASSESSMENT" },
-    { key: "peer", title: "PEER ASSESSMENT" },
-    { key: "work", title: "Work Education or Pre-Vocational Education" },
-    { key: "health", title: "Health & Physical Education" },
-    { key: "art", title: "Art Education" },
-    { key: "music", title: "Music" },
-    { key: "dance", title: "Dance" },
-    { key: "creativity", title: "Creativity" },
-    { key: "discipline", title: "Discipline" },
-  ]);
-
-  const [students, setStudents] = useState([
-    {
-      id: 1,
-      roll: "4",
-      section: "A",
-      name: "C V SOHAN",
-      present: 220,
-      totalDays: 240,
-      result: "PASS",
-      marks: {
-        physical: "A",
-        socio: "A",
-        cognitive: "B",
-        language: "A",
-        positive: "A",
-        aesthetic: "B",
-        self: "A",
-        peer: "A",
-        work: "A",
-        health: "A",
-        art: "B",
-        music: "A",
-        dance: "A",
-        creativity: "A",
-        discipline: "A",
-      },
-      remark: {},
-    },
-    {
-      id: 2,
-      roll: "45",
-      section: "B",
-      name: "B H Rohan",
-      present: 220,
-      totalDays: 240,
-      result: "PASS",
-      remark: {},
-      marks: {
-        physical: "A",
-        socio: "A",
-        cognitive: "B",
-        language: "A",
-        positive: "A",
-        aesthetic: "B",
-        self: "A",
-        peer: "A",
-        work: "A",
-        health: "A",
-        art: "B",
-        music: "A",
-        dance: "A",
-        creativity: "A",
-        discipline: "A",
-      },
-    },
-  ]);
 
   const [remarkModal, setRemarkModal] = useState(false);
   const [viewMode, setViewMode] = useState(false);
-  const [activeStudent, setActiveStudent] = useState(null);
+  const [activeStudentSlug, setActiveStudentSlug] = useState(null);
 
   const [remarkData, setRemarkData] = useState({
     type: "",
     remark: "",
   });
 
-  //   const [students, setStudents] = useState([
-  //     {
-  //       id: 1,
-  //       admission: "527/16-17",
-  //       roll: "4",
-  //       section: "A",
-  //       name: "C V SOHAN",
-  //       marks: {
-  //         food: 5,
-  //         hygiene: 4,
-  //         safety: 5,
-  //       },
-  //     },
+  const {
+    filters,
+    configuration,
+    submission,
+    students,
 
-  //     {
-  //       id: 2,
-  //       admission: "485/16-17",
-  //       roll: "28",
-  //       section: "A",
-  //       name: "S SHRINESH",
-  //       marks: {
-  //         food: 4,
-  //         hygiene: 3,
-  //         safety: 5,
-  //       },
-  //     },
-  //   ]);
+    loading,
+    submitLoading,
+    lockLoading,
 
-  const toggleAll = (e) => {
-    if (e.target.checked) {
-      setSelected(students.map((s) => s.id));
-    } else {
+    setFilter,
+    setFilters,
+    clearGradeData,
+    setStudentSelected,
+
+    updateSubjectGrade,
+    updateRemarkType,
+    updateRemark,
+    updatePresentDays,
+    updateTotalDays,
+    updateResult,
+
+    fetchStudents,
+    saveGrades,
+    lockGrades,
+  } = useCoScholasticGradeSubmissionStore();
+
+  const {
+    sessions = [],
+    loading: sessionLoading,
+    fetchSessions,
+  } = useSessionStore();
+
+  const { boards = [], loading: boardLoading, fetchBoards } = useBoardStore();
+
+  const { classes = [], loading: classLoading, fetchClasses } = useClassStore();
+
+  const {
+    mappings = [],
+    loading: mappingLoading,
+    fetchMappings,
+  } = useClassMappingStore();
+
+  const {
+    termExams = [],
+    loading: termExamLoading,
+    fetchTermExams,
+  } = useTermExamTimeTableStore();
+
+  const selectedClass = filters.classTitle;
+  const isLocked = Boolean(submission?.isLocked);
+
+  const subjects = useMemo(() => {
+    return Array.isArray(configuration?.subjects) ? configuration.subjects : [];
+  }, [configuration]);
+
+  const activeSessions = useMemo(() => {
+    return sessions.filter(
+      (item) => item.isActive !== false && item.status !== "inactive",
+    );
+  }, [sessions]);
+
+  const activeBoards = useMemo(() => {
+    return boards.filter(
+      (item) => item.isActive !== false && item.status !== "inactive",
+    );
+  }, [boards]);
+
+  const activeTermExams = useMemo(() => {
+    return termExams.filter((item) => {
+      const isActive = item.isActive !== false && item.status !== "inactive";
+
+      const sessionMatches =
+        !filters.academicYear ||
+        item.sessionName === filters.academicYear ||
+        item.session?.name === filters.academicYear;
+
+      const boardMatches =
+        !filters.board ||
+        item.boardTitle === filters.board ||
+        item.board?.title === filters.board;
+
+      return isActive && sessionMatches && boardMatches;
+    });
+  }, [termExams, filters.academicYear, filters.board]);
+
+  const activeClasses = useMemo(() => {
+    return classes.filter(
+      (item) => item.isActive !== false && item.status !== "inactive",
+    );
+  }, [classes]);
+
+  const selectedClassMappings = useMemo(() => {
+    return mappings.filter((item) => {
+      const classTitle =
+        item.classTitle ||
+        item.class?.classTitle ||
+        item.classData?.classTitle ||
+        "";
+
+      return classTitle === filters.classTitle;
+    });
+  }, [mappings, filters.classTitle]);
+
+  const sectionOptions = useMemo(() => {
+    const map = new Map();
+
+    selectedClassMappings.forEach((mapping) => {
+      const sections = Array.isArray(mapping.sections) ? mapping.sections : [];
+
+      const sectionSlugs = Array.isArray(mapping.sectionSlugs)
+        ? mapping.sectionSlugs
+        : [];
+
+      sections.forEach((item, index) => {
+        const isString = typeof item === "string";
+
+        const slug = isString
+          ? sectionSlugs[index] || ""
+          : item?.slug || item?.sectionSlug || sectionSlugs[index] || "";
+
+        const title = isString
+          ? item
+          : item?.sectionTitle || item?.title || item?.section || "";
+
+        if (!title) {
+          return;
+        }
+
+        const key = slug || title;
+
+        if (!map.has(key)) {
+          map.set(key, {
+            slug,
+            title,
+          });
+        }
+      });
+    });
+
+    return Array.from(map.values());
+  }, [selectedClassMappings]);
+
+  const streamOptions = useMemo(() => {
+    const map = new Map();
+
+    selectedClassMappings.forEach((mapping) => {
+      const streams = Array.isArray(mapping.streams) ? mapping.streams : [];
+
+      const streamSlugs = Array.isArray(mapping.streamSlugs)
+        ? mapping.streamSlugs
+        : [];
+
+      streams.forEach((item, index) => {
+        const isString = typeof item === "string";
+
+        const slug = isString
+          ? streamSlugs[index] || ""
+          : item?.slug || item?.streamSlug || streamSlugs[index] || "";
+
+        const title = isString
+          ? item
+          : item?.streamTitle || item?.title || item?.stream || "";
+
+        if (!title) {
+          return;
+        }
+
+        const key = slug || title;
+
+        if (!map.has(key)) {
+          map.set(key, {
+            slug,
+            title,
+          });
+        }
+      });
+    });
+
+    return Array.from(map.values());
+  }, [selectedClassMappings]);
+
+  const filteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      const sectionMatches =
+        !filters.section || student.sectionTitle === filters.section;
+
+      const streamMatches =
+        !filters.stream || student.streamTitle === filters.stream;
+
+      return sectionMatches && streamMatches;
+    });
+  }, [students, filters.section, filters.stream]);
+
+  useEffect(() => {
+    fetchSessions();
+    fetchBoards();
+  }, [fetchSessions, fetchBoards]);
+
+  useEffect(() => {
+    if (!filters.academicYear || !filters.board) {
+      return;
+    }
+
+    fetchTermExams({
+      session: filters.academicYear,
+      board: filters.board,
+    });
+
+    fetchClasses({
+      session: filters.academicYear,
+      board: filters.board,
+    });
+  }, [filters.academicYear, filters.board, fetchTermExams, fetchClasses]);
+
+  useEffect(() => {
+    if (!filters.academicYear || !filters.board || !filters.classTitle) {
+      return;
+    }
+
+    fetchMappings({
+      session: filters.academicYear,
+      board: filters.board,
+      classTitle: filters.classTitle,
+    });
+  }, [filters.academicYear, filters.board, filters.classTitle, fetchMappings]);
+
+  useEffect(() => {
+    if (
+      !filters.academicYear ||
+      !filters.board ||
+      !filters.termExamSlug ||
+      !filters.classTitle
+    ) {
+      return;
+    }
+
+    handleLoadStudents();
+  }, [
+    filters.academicYear,
+    filters.board,
+    filters.termExamSlug,
+    filters.classTitle,
+    filters.stream,
+  ]);
+
+  useEffect(() => {
+    setSelected([]);
+  }, [
+    filters.academicYear,
+    filters.board,
+    filters.termExamSlug,
+    filters.classTitle,
+  ]);
+
+  const handleAcademicYearChange = (value) => {
+    clearGradeData();
+
+    setFilters({
+      academicYear: value,
+      board: "",
+      termExamSlug: "",
+      termExamTitle: "",
+      classTitle: "",
+      section: "",
+      stream: "",
+    });
+
+    setSelected([]);
+  };
+
+  const handleBoardChange = (value) => {
+    clearGradeData();
+
+    setFilters({
+      board: value,
+      termExamSlug: "",
+      termExamTitle: "",
+      classTitle: "",
+      section: "",
+      stream: "",
+    });
+
+    setSelected([]);
+  };
+
+  const handleTermExamChange = (slug) => {
+    const exam = activeTermExams.find((item) => item.slug === slug);
+
+    clearGradeData();
+
+    setFilters({
+      termExamSlug: slug,
+      termExamTitle: exam?.examTitle || exam?.title || "",
+      classTitle: "",
+      section: "",
+      stream: "",
+    });
+
+    setSelected([]);
+  };
+
+  const handleClassChange = (value) => {
+    clearGradeData();
+
+    setFilters({
+      classTitle: value,
+      section: "",
+      stream: "",
+    });
+
+    setSelected([]);
+  };
+
+  const handleSectionChange = (value) => {
+    const section = sectionOptions.find(
+      (item) => item.slug === value || item.title === value,
+    );
+
+    setFilter("section", section?.title || value || "");
+
+    setSelected([]);
+  };
+
+  const handleStreamChange = (value) => {
+    const stream = streamOptions.find(
+      (item) => item.slug === value || item.title === value,
+    );
+
+    setFilter("stream", stream?.title || value || "");
+
+    setSelected([]);
+  };
+
+  const handleLoadStudents = async () => {
+    const validation = validateCoScholasticFilters({
+      academicYear: filters.academicYear,
+
+      board: filters.board,
+
+      termExamSlug: filters.termExamSlug,
+
+      classTitle: filters.classTitle,
+
+      // Section is filtered locally, so existing entered values remain safe.
+      section: null,
+
+      stream: filters.stream || null,
+    });
+
+    if (!validation.success) {
+      return false;
+    }
+
+    const success = await fetchStudents({
+      ...validation.data,
+
+      section: undefined,
+
+      stream: validation.data.stream || undefined,
+    });
+
+    if (success) {
       setSelected([]);
     }
+
+    return success;
+  };
+
+  const toggleAll = (event) => {
+    const checked = event.target.checked;
+
+    const visibleSlugs = filteredStudents.map((student) => student.studentSlug);
+
+    if (checked) {
+      setSelected((previous) => [...new Set([...previous, ...visibleSlugs])]);
+
+      visibleSlugs.forEach((studentSlug) => {
+        setStudentSelected(studentSlug, true);
+      });
+
+      return;
+    }
+
+    setSelected((previous) =>
+      previous.filter((studentSlug) => !visibleSlugs.includes(studentSlug)),
+    );
+
+    visibleSlugs.forEach((studentSlug) => {
+      setStudentSelected(studentSlug, false);
+    });
+  };
+
+  const toggleOne = (studentSlug) => {
+    const alreadySelected = selected.includes(studentSlug);
+
+    setSelected((previous) =>
+      alreadySelected
+        ? previous.filter((slug) => slug !== studentSlug)
+        : [...previous, studentSlug],
+    );
+
+    setStudentSelected(studentSlug, !alreadySelected);
   };
 
   const openRemark = (student, mode) => {
-    setActiveStudent(student);
+    setActiveStudentSlug(student.studentSlug);
 
     setViewMode(mode === "view");
 
-    setRemarkData(
-      student.remark || {
-        type: "",
-        remark: "",
-      },
-    );
+    setRemarkData({
+      type: student.remarkType || "",
+
+      remark: student.remark || "",
+    });
 
     setRemarkModal(true);
   };
 
   const saveRemark = () => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === activeStudent.id
-          ? {
-              ...s,
-              remark: remarkData,
-            }
-          : s,
-      ),
-    );
+    if (!activeStudentSlug) {
+      return;
+    }
+
+    updateRemarkType(activeStudentSlug, remarkData.type);
+
+    updateRemark(activeStudentSlug, remarkData.remark);
 
     setRemarkModal(false);
+    setActiveStudentSlug(null);
   };
 
-  const handleMarksChange = (id, key, value) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === id
-          ? {
-              ...student,
-              marks: {
-                ...student.marks,
-                [key]: value,
-              },
-            }
-          : student,
-      ),
+  const handleGradeChange = (studentSlug, classSubjectSlug, value) => {
+    updateSubjectGrade(studentSlug, classSubjectSlug, value || null);
+  };
+
+  const buildStudentPayload = (selectedStudents) => {
+    return selectedStudents.map((student) => ({
+      studentSlug: student.studentSlug,
+
+      academicMappingSlug: student.academicMappingSlug,
+
+      overallStatus: student.overallStatus || "ASSESSED",
+
+      remarkType: student.remarkType?.trim() || null,
+
+      remark: student.remark?.trim() || null,
+
+      presentDays:
+        student.presentDays === "" ||
+        student.presentDays === null ||
+        student.presentDays === undefined
+          ? null
+          : Number(student.presentDays),
+
+      totalDays:
+        student.totalDays === "" ||
+        student.totalDays === null ||
+        student.totalDays === undefined
+          ? null
+          : Number(student.totalDays),
+
+      result: student.result || "NOT_DECLARED",
+
+      subjectGrades: subjects.map((subject) => {
+        const value = student.subjectGrades?.[subject.classSubjectSlug] || {};
+
+        const assessmentStatus = value.assessmentStatus || "ASSESSED";
+
+        return {
+          classSubjectSlug: subject.classSubjectSlug,
+
+          grade:
+            student.overallStatus !== "ASSESSED" ||
+            assessmentStatus !== "ASSESSED"
+              ? null
+              : value.grade || null,
+
+          assessmentStatus:
+            student.overallStatus !== "ASSESSED"
+              ? student.overallStatus
+              : assessmentStatus,
+
+          remarks: value.remarks?.trim() || null,
+        };
+      }),
+    }));
+  };
+
+  const saveResult = async () => {
+    if (isLocked) {
+      toast.error("Grades are locked and cannot be edited");
+
+      return;
+    }
+
+    if (!selected.length) {
+      toast.error("Select at least one student");
+
+      return;
+    }
+
+    if (!subjects.length) {
+      toast.error("Co-Scholastic or Personality Traits subjects not found");
+
+      return;
+    }
+
+    const selectedStudents = students.filter((student) =>
+      selected.includes(student.studentSlug),
     );
-  };
 
-  const saveResult = () => {
-    console.log("Saved Data:", students);
+    const payload = {
+      academicYear: filters.academicYear,
 
-    alert("Result Saved Successfully");
+      board: filters.board,
+
+      termExamSlug: filters.termExamSlug,
+
+      classTitle: filters.classTitle,
+
+      section: filters.section || null,
+
+      stream: filters.stream || null,
+
+      students: buildStudentPayload(selectedStudents),
+    };
+
+    const validation = validateSaveCoScholasticGrades(payload);
+
+    if (!validation.success) {
+      toast.error(validation.message || "Invalid Co-Scholastic grade data");
+
+      return;
+    }
+
+    const success = await saveGrades(validation.data);
+
+    if (!success) {
+      return;
+    }
+
+    setSelected([]);
+
+    await fetchStudents({
+      academicYear: filters.academicYear,
+
+      board: filters.board,
+
+      termExamSlug: filters.termExamSlug,
+
+      classTitle: filters.classTitle,
+
+      section: undefined,
+
+      stream: filters.stream || undefined,
+    });
   };
 
   const lockMarks = () => {
+    if (!submission?.slug) {
+      toast.error("Save grades before locking");
+
+      return;
+    }
+
+    if (isLocked) {
+      toast.error("Grades are already locked");
+
+      return;
+    }
+
     setShowLockModal(true);
   };
 
-  const confirmLockMarks = () => {
-    setIsLocked(true);
+  const confirmLockMarks = async () => {
+    if (!submission?.slug) {
+      toast.error("Grade submission not found");
+
+      return;
+    }
+
+    const success = await lockGrades(submission.slug);
+
+    if (!success) {
+      return;
+    }
+
     setShowLockModal(false);
+    setSelected([]);
   };
 
-  const toggleOne = (id) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+  const handlePdf = () => {
+    if (!submission?.slug) {
+      toast.error("Save grades before generating PDF");
+
+      return;
+    }
+
+    toast.error("PDF generation API is not connected yet");
   };
+
+  const handleTeacherWise = () => {
+    toast.error("Teacher-wise view is not connected yet");
+  };
+
+  const selectedSectionValue =
+    sectionOptions.find((item) => item.title === filters.section)?.slug || "";
+
+  const selectedStreamValue =
+    streamOptions.find((item) => item.title === filters.stream)?.slug || "";
+
+  const allVisibleSelected =
+    filteredStudents.length > 0 &&
+    filteredStudents.every((student) => selected.includes(student.studentSlug));
+
+  const columnCount = 9 + subjects.length;
 
   return (
     <div className="space-y-8">
@@ -205,38 +684,82 @@ export default function CoScholasticMarkSubmission() {
         </h1>
 
         <div className="flex gap-3">
-          <select className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-40 cursor-pointer">
-            <option>Select Acad. Year</option>
-            <option>2025-26</option>
-            <option>2024-25</option>
-            <option>2023-24</option>
+          <select
+            value={filters.academicYear}
+            onChange={(event) => handleAcademicYearChange(event.target.value)}
+            disabled={sessionLoading}
+            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="">
+              {sessionLoading ? "Loading..." : "Select Acad. Year"}
+            </option>
+
+            {activeSessions.map((session) => (
+              <option
+                key={session.slug}
+                value={session.name || session.sessionName}
+              >
+                {session.name || session.sessionName}
+              </option>
+            ))}
           </select>
 
-          <select className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-40 cursor-pointer">
-            <option>Select Board</option>
-            <samp></samp>
-            <option>CBSE</option>
-            <option>CGBSE</option>
-            <option>BSEB</option>
+          <select
+            value={filters.board}
+            onChange={(event) => handleBoardChange(event.target.value)}
+            disabled={!filters.academicYear || boardLoading}
+            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="">
+              {boardLoading ? "Loading..." : "Select Board"}
+            </option>
+
+            {activeBoards.map((board) => (
+              <option key={board.slug} value={board.title || board.boardTitle}>
+                {board.title || board.boardTitle}
+              </option>
+            ))}
           </select>
 
-          <select className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-44 cursor-pointer">
-            <option>Select Exam</option>
-            <option>PERIODIC TEST 1</option>
-            <option>TERM 1</option>
-            <option>TERM 2</option>
-            <option>TERM 3</option>
+          <select
+            value={filters.termExamSlug}
+            onChange={(event) => handleTermExamChange(event.target.value)}
+            disabled={
+              !filters.academicYear || !filters.board || termExamLoading
+            }
+            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-44 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="">
+              {termExamLoading ? "Loading..." : "Select Exam"}
+            </option>
+
+            {activeTermExams.map((exam) => (
+              <option key={exam.slug} value={exam.slug}>
+                {exam.examTitle || exam.title}
+              </option>
+            ))}
           </select>
 
           <select
             value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-40 cursor-pointer"
+            onChange={(event) => handleClassChange(event.target.value)}
+            disabled={
+              !filters.academicYear ||
+              !filters.board ||
+              !filters.termExamSlug ||
+              classLoading
+            }
+            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white w-40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <option value="">Select Class</option>
-            <option>Class 1</option>
-            <option>Class 2</option>
-            <option>Class 3</option>
+            <option value="">
+              {classLoading ? "Loading..." : "Select Class"}
+            </option>
+
+            {activeClasses.map((item) => (
+              <option key={item.slug} value={item.classTitle}>
+                {item.classTitle}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -265,65 +788,134 @@ export default function CoScholasticMarkSubmission() {
               <h2 className="text-xl text-white mb-4">All Students</h2>
 
               <div className="flex gap-4">
-                {/* <select className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white w-40 cursor-pointer">
-                  <option>Select Subject</option>
-                  <option>English (Theory)</option>
-                  <option>Math</option>
-                </select> */}
+                <select
+                  value={selectedSectionValue}
+                  onChange={(event) => handleSectionChange(event.target.value)}
+                  disabled={mappingLoading || !sectionOptions.length}
+                  className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white w-40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="">
+                    {mappingLoading
+                      ? "Loading..."
+                      : sectionOptions.length
+                        ? "Select Section"
+                        : "No Section"}
+                  </option>
 
-                <select className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white w-40 cursor-pointer">
-                  <option>Select Section</option>
-                  <option>A</option>
-                  <option>B</option>
+                  {sectionOptions.map((section) => (
+                    <option
+                      key={section.slug || section.title}
+                      value={section.slug || section.title}
+                    >
+                      {section.title}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedStreamValue}
+                  onChange={(event) => handleStreamChange(event.target.value)}
+                  disabled={mappingLoading || !streamOptions.length}
+                  className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white w-40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="">
+                    {mappingLoading
+                      ? "Loading..."
+                      : streamOptions.length
+                        ? "Select Stream"
+                        : "No Stream"}
+                  </option>
+
+                  {streamOptions.map((stream) => (
+                    <option
+                      key={stream.slug || stream.title}
+                      value={stream.slug || stream.title}
+                    >
+                      {stream.title}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
             <div className="flex gap-3">
               <button
-                disabled={isLocked}
+                disabled={
+                  isLocked || submitLoading || loading || !students.length
+                }
                 onClick={saveResult}
                 className={`px-8 py-3 rounded-xl text-white flex gap-2 ${
-                  isLocked
+                  isLocked || submitLoading || loading || !students.length
                     ? "bg-gray-600 cursor-not-allowed"
                     : "bg-green-500 hover:bg-green-600 cursor-pointer"
                 }`}
               >
-                <Save size={18} className="mt-1" />
-                Save Result
+                {submitLoading ? (
+                  <Loader2 size={18} className="mt-1 animate-spin" />
+                ) : (
+                  <Save size={18} className="mt-1" />
+                )}
+
+                {submitLoading ? "Saving..." : "Save Result"}
               </button>
 
-              <button className="bg-red-500 px-5 py-3 rounded-xl cursor-pointer hover:bg-red-600 text-white flex gap-2">
+              <button
+                onClick={handlePdf}
+                className="bg-red-500 px-5 py-3 rounded-xl cursor-pointer hover:bg-red-600 text-white flex gap-2"
+              >
                 <FileText size={18} className="mt-1" />
                 PDF
               </button>
 
-              <button className="bg-yellow-500 px-5 py-3 rounded-xl cursor-pointer hover:bg-yellow-600 text-white">
+              <button
+                onClick={handleTeacherWise}
+                className="bg-yellow-500 px-5 py-3 rounded-xl cursor-pointer hover:bg-yellow-600 text-white"
+              >
                 Teacher Wise
               </button>
 
               <button
+                disabled={lockLoading || isLocked || !submission?.slug}
                 onClick={lockMarks}
-                className="bg-gray-800 hover:bg-gray-700 cursor-pointer px-5 py-3 rounded-xl text-white flex gap-2"
+                className={`px-5 py-3 rounded-xl text-white flex gap-2 ${
+                  lockLoading || isLocked || !submission?.slug
+                    ? "bg-gray-700 cursor-not-allowed"
+                    : "bg-gray-800 hover:bg-gray-700 cursor-pointer"
+                }`}
               >
-                <Lock size={18} />
-                Lock Marks
+                {lockLoading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Lock size={18} />
+                )}
+
+                {isLocked
+                  ? "Grades Locked"
+                  : lockLoading
+                    ? "Locking..."
+                    : "Lock Marks"}
               </button>
             </div>
           </div>
 
           {/* table */}
 
-          <div className="overflow-auto custom-scrollbar">
+          <div className="overflow-x-auto overflow-y-auto max-h-[650px] custom-scrollbar">
             <table className="w-full min-w-[1800px]">
-              <thead className="bg-gray-800">
+              <thead className="bg-gray-800 sticky top-0 z-10">
                 <tr>
                   <th className="p-3 w-12 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selected.length === students.length}
-                      onChange={toggleAll}
-                    />
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        disabled={
+                          isLocked || loading || !filteredStudents.length
+                        }
+                        onChange={toggleAll}
+                        className="h-4 w-4 cursor-pointer"
+                      />
+                    </div>
                   </th>
 
                   <th className="p-3 text-left text-gray-300">SN.</th>
@@ -332,108 +924,218 @@ export default function CoScholasticMarkSubmission() {
 
                   <th className="p-3 text-left text-gray-300">Section</th>
 
-                  <th className="p-3 text-left text-gray-300">Student Name</th>
+                  <th className="p-3 text-left text-gray-300 min-w-[180px]">
+                    Student Name
+                  </th>
 
-                  {topics.map((item) => (
+                  {subjects.map((item) => (
                     <th
-                      key={item.key}
-                      className="p-3 text-left text-gray-300 min-w-[130px] align-bottom"
+                      key={item.classSubjectSlug}
+                      className="p-3 text-left text-gray-300 min-w-[150px] align-bottom"
                     >
-                      {item.title}
+                      <div>{item.subjectTitle}</div>
+
+                      <div className="text-blue-400 mt-2 text-xs">
+                        {item.subjectType}
+                      </div>
                     </th>
                   ))}
 
-                  <th className="p-3 text-center text-gray-300">Remark</th>
+                  <th className="p-3 text-center text-gray-300 min-w-[100px]">
+                    Remark
+                  </th>
 
-                  <th className="p-3 text-center text-gray-300">
+                  <th className="p-3 text-center text-gray-300 min-w-[110px]">
                     Present Days
                   </th>
 
-                  <th className="p-3 text-center text-gray-300">Total Days</th>
+                  <th className="p-3 text-center text-gray-300 min-w-[110px]">
+                    Total Days
+                  </th>
 
-                  <th className="p-3 text-center text-gray-300">Result</th>
+                  <th className="p-3 text-center text-gray-300 min-w-[140px]">
+                    Result
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {students.map((s) => (
-                  <tr key={s.id} className="border-t border-gray-800">
-                    <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(s.id)}
-                        onChange={() => toggleOne(s.id)}
-                      />
+                {loading ? (
+                  <tr>
+                    <td colSpan={columnCount} className="p-12 text-center">
+                      <div className="flex items-center justify-center gap-3 text-gray-400">
+                        <Loader2 size={24} className="animate-spin" />
+                        Loading students...
+                      </div>
                     </td>
-
-                    <td className="p-3 text-gray-300">{s.id}.</td>
-
-                    <td className="p-3 text-gray-300">{s.roll}</td>
-
-                    <td className="p-3 text-gray-300">{s.section}</td>
-
-                    <td className="p-3 text-white">{s.name}</td>
-
-                    {topics.map((item) => (
-                      <td key={item.key} className="p-2">
-                        <input
-                          value={s.marks[item.key]}
-                          disabled={isLocked}
-                          onChange={(e) =>
-                            handleMarksChange(s.id, item.key, e.target.value)
-                          }
-                          className={`w-20 bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white text-center ${isLocked ? "cursor-not-allowed opacity-60" : ""}`}
-                        />
+                  </tr>
+                ) : filteredStudents.length ? (
+                  filteredStudents.map((student, index) => (
+                    <tr
+                      key={student.studentSlug}
+                      className="border-t border-gray-800"
+                    >
+                      <td className="p-3 text-center align-middle">
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={selected.includes(student.studentSlug)}
+                            disabled={isLocked}
+                            onChange={() => toggleOne(student.studentSlug)}
+                            className="h-4 w-4 cursor-pointer"
+                          />
+                        </div>
                       </td>
-                    ))}
 
-                    <td className="p-2 text-center">
-                      {s.remark?.remark ? (
-                        <div className="flex gap-2 justify-center">
-                          <button
-                            onClick={() => openRemark(s, "view")}
-                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md cursor-pointer"
+                      <td className="p-3 text-gray-300">{index + 1}.</td>
+
+                      <td className="p-3 text-gray-300">
+                        {student.rollNumber ?? "-"}
+                      </td>
+
+                      <td className="p-3 text-gray-300">
+                        {student.sectionTitle || "-"}
+                      </td>
+
+                      <td className="p-3 text-white">
+                        {student.studentName || "-"}
+                      </td>
+
+                      {subjects.map((item) => (
+                        <td
+                          key={`${student.studentSlug}-${item.classSubjectSlug}`}
+                          className="p-2 text-center"
+                        >
+                          <select
+                            value={
+                              student.subjectGrades?.[item.classSubjectSlug]
+                                ?.grade || ""
+                            }
+                            disabled={isLocked}
+                            onChange={(event) =>
+                              handleGradeChange(
+                                student.studentSlug,
+                                item.classSubjectSlug,
+                                event.target.value,
+                              )
+                            }
+                            className={`w-[125px] bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white text-center ${
+                              isLocked
+                                ? "cursor-not-allowed opacity-60"
+                                : "cursor-pointer"
+                            }`}
                           >
-                            <Eye size={16} />
-                          </button>
+                            <option value="">Select Grade</option>
 
+                            {GRADE_OPTIONS.map((grade) => (
+                              <option key={grade.value} value={grade.value}>
+                                {grade.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      ))}
+
+                      <td className="p-2 text-center">
+                        {student.remark ? (
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => openRemark(student, "view")}
+                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md cursor-pointer"
+                            >
+                              <Eye size={16} />
+                            </button>
+
+                            <button
+                              disabled={isLocked}
+                              onClick={() => openRemark(student, "edit")}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <Edit size={16} />
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={() => openRemark(s, "edit")}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md cursor-pointer"
+                            disabled={isLocked}
+                            onClick={() => openRemark(student, "edit")}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <Edit size={16} />
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => openRemark(s, "edit")}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md cursor-pointer"
+                        )}
+                      </td>
+
+                      <td className="p-2 text-center">
+                        <input
+                          type="number"
+                          min="0"
+                          value={student.presentDays ?? ""}
+                          disabled={isLocked}
+                          onChange={(event) =>
+                            updatePresentDays(
+                              student.studentSlug,
+                              event.target.value,
+                            )
+                          }
+                          className="w-20 bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white text-center disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+                      </td>
+
+                      <td className="p-2 text-center">
+                        <input
+                          type="number"
+                          min="0"
+                          value={student.totalDays ?? ""}
+                          disabled={isLocked}
+                          onChange={(event) =>
+                            updateTotalDays(
+                              student.studentSlug,
+                              event.target.value,
+                            )
+                          }
+                          className="w-20 bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white text-center disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+                      </td>
+
+                      <td className="p-2 text-center">
+                        <select
+                          value={student.result || "NOT_DECLARED"}
+                          disabled={isLocked}
+                          onChange={(event) =>
+                            updateResult(
+                              student.studentSlug,
+                              event.target.value,
+                            )
+                          }
+                          className="w-[125px] bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          <Edit size={16} />
-                        </button>
-                      )}
-                    </td>
-
-                    <td className="p-2 text-center text-gray-300">
-                      {s.present}
-                    </td>
-
-                    <td className="p-2 text-center text-gray-300">
-                      {s.totalDays}
-                    </td>
-
-                    <td className="p-2 text-green-400 font-semibold">
-                      {s.result}
+                          {RESULT_OPTIONS.map((result) => (
+                            <option key={result.value} value={result.value}>
+                              {result.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={columnCount}
+                      className="p-12 text-center text-gray-400"
+                    >
+                      No students found for the selected filters.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* modal */}
+      {/* Lock modal */}
+
       {showLockModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-[420px] shadow-xl">
@@ -454,22 +1156,28 @@ export default function CoScholasticMarkSubmission() {
 
             <div className="flex gap-4 mt-8">
               <button
+                disabled={lockLoading}
                 onClick={() => setShowLockModal(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl cursor-pointer"
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
               </button>
 
               <button
+                disabled={lockLoading}
                 onClick={confirmLockMarks}
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl cursor-pointer"
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
               >
-                Yes, Lock
+                {lockLoading && <Loader2 size={18} className="animate-spin" />}
+
+                {lockLoading ? "Locking..." : "Yes, Lock"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Remark modal */}
 
       {remarkModal && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
@@ -480,32 +1188,40 @@ export default function CoScholasticMarkSubmission() {
 
             {viewMode ? (
               <div className="space-y-4">
-                <p className="text-gray-300">Type : {remarkData.type}</p>
+                <p className="text-gray-300">Type : {remarkData.type || "-"}</p>
 
-                <p className="text-gray-300">Remark : {remarkData.remark}</p>
+                <p className="text-gray-300">
+                  Remark : {remarkData.remark || "-"}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <select
                   value={remarkData.type}
-                  onChange={(e) =>
-                    setRemarkData({ ...remarkData, type: e.target.value })
+                  onChange={(event) =>
+                    setRemarkData((previous) => ({
+                      ...previous,
+                      type: event.target.value,
+                    }))
                   }
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-3 text-white"
                 >
                   <option value="">Select Remark</option>
 
-                  <option>Excellent</option>
+                  <option value="Excellent">Excellent</option>
 
-                  <option>Good</option>
+                  <option value="Good">Good</option>
 
-                  <option>Need Improvement</option>
+                  <option value="Need Improvement">Need Improvement</option>
                 </select>
 
                 <textarea
                   value={remarkData.remark}
-                  onChange={(e) =>
-                    setRemarkData({ ...remarkData, remark: e.target.value })
+                  onChange={(event) =>
+                    setRemarkData((previous) => ({
+                      ...previous,
+                      remark: event.target.value,
+                    }))
                   }
                   placeholder="Enter Remark"
                   className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg px-3 py-3 text-white resize-none"
@@ -515,7 +1231,10 @@ export default function CoScholasticMarkSubmission() {
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setRemarkModal(false)}
+                onClick={() => {
+                  setRemarkModal(false);
+                  setActiveStudentSlug(null);
+                }}
                 className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg cursor-pointer"
               >
                 Close

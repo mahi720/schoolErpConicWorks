@@ -31,6 +31,9 @@ import termExamTimeTableRoutes from "./routes/examManager/termExamTimeTable/term
 import periodicTestRoutes from "./routes/examManager/periodicTestTimeTable/periodicTestTimeTable.routes.js";
 import periodicTestMarkSubmissionRoutes from "./routes/examManager/markSubmission/periodicTestMarkSubmission/periodicTestMarkSubmission.routes.js";
 import termExamMarkSubmissionRoutes from "./routes/examManager/markSubmission/termExamMarkSubmission/termExamMarkSubmission.routes.js";
+import topicWiseGradeSubmissionRoutes from "./routes/examManager/markSubmission/topicWiseGradeSubmission/topicWiseGradeSubmission.routes.js";
+import coScholasticGradeSubmissionRoutes from "./routes/examManager/markSubmission/coScholasticGradeSubmission/coScholasticGradeSubmission.routes.js";
+
 
 
 const app = express()
@@ -109,6 +112,8 @@ app.use("/api", termExamTimeTableRoutes);
 app.use("/api/periodic-tests", periodicTestRoutes);
 app.use("/api/periodic-test-mark-submissions", periodicTestMarkSubmissionRoutes);
 app.use("/api/term-exam-mark-submissions", termExamMarkSubmissionRoutes);
+app.use("/api/topic-wise-grade-submissions", topicWiseGradeSubmissionRoutes);
+app.use("/api/co-scholastic-grade-submissions", coScholasticGradeSubmissionRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
