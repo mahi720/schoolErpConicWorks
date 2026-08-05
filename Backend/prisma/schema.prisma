@@ -104,6 +104,22 @@ model School {
   coScholasticStudentGrades        CoScholasticStudentGrade[]
   coScholasticStudentSubjectGrades CoScholasticStudentSubjectGrade[]
   coScholasticGradeAuditLogs       CoScholasticGradeAuditLog[]
+  hrmDepartments                   HrmDepartment[]
+  hrmDesignations                  HrmDesignation[]
+  hrmShifts                        HrmShift[]
+  hrmBasicSettings                 HrmBasicSetting[]
+  hrmPayBands                      HrmPayBand[]
+  hrmPayBandStructures             HrmPayBandStructure[]
+  hrmEarningTypes                  HrmEarningType[]
+  hrmDeductionTypes                HrmDeductionType[]
+  hrmAuthorizedPersons             HrmAuthorizedPerson[]
+  hrmIdentityDocumentTypes         HrmIdentityDocumentType[]
+  hrmDegreeDocumentTypes           HrmDegreeDocumentType[]
+  hrmEmployeeLetterTypes           HrmEmployeeLetterType[]
+  hrmLeaveTypes                    HrmLeaveType[]
+  hrmLoanInterests                 HrmLoanInterest[]
+  hrmLoanSetting                   HrmLoanSetting?
+  hrmPayBandImage                  HrmPayBandImage?
 
   @@map("schools")
 }
@@ -1636,68 +1652,6 @@ model StudentOtherInformation {
   @@map("student_other_informations")
 }
 
-// weekly lession 
-
-// model WeeklyPlan {
-//   id   Int    @id @default(autoincrement())
-//   slug String @unique @db.VarChar(50)
-
-//   schoolSlug String @db.VarChar(50)
-//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
-
-//   sessionSlug String  @db.VarChar(50)
-//   session     Session @relation(fields: [sessionSlug], references: [slug], onDelete: Cascade)
-
-//   classSubjectSlug String            @db.VarChar(50)
-//   classSubject     AddSubjectToClass @relation(fields: [classSubjectSlug], references: [slug], onDelete: Cascade)
-
-//   sectionSlug String  @db.VarChar(50)
-//   section     Section @relation(fields: [sectionSlug], references: [slug], onDelete: Cascade)
-
-//   boardSlug String @db.VarChar(50)
-//   board     Board  @relation(fields: [boardSlug], references: [slug], onDelete: Cascade)
-
-//   userSlug String @db.VarChar(50)
-//   user     User   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
-
-//   classSlug String @db.VarChar(50)
-//   class     Class  @relation(fields: [classSlug], references: [slug], onDelete: Cascade)
-
-//   teacherSlug String? @db.VarChar(50)
-
-//   fromDate DateTime
-//   toDate   DateTime
-
-//   topic String @db.Text
-
-//   subTopic String? @db.Text
-
-//   introductionAids String? @db.Text
-
-//   introductionActivity String? @db.Text
-
-//   learningObjective String? @db.Text
-
-//   numberOfPeriods Int
-
-//   lessons WeeklyPlanLesson[]
-
-//   status    String    @default("active")
-//   isActive  Boolean   @default(true)
-//   deletedAt DateTime?
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@unique([teacherSlug, classSubjectSlug, sectionSlug, fromDate, toDate])
-//   @@index([schoolSlug])
-//   @@index([sessionSlug])
-//   @@index([classSubjectSlug])
-//   @@index([sectionSlug])
-//   @@index([teacherSlug])
-//   @@map("weekly_plans")
-// }
-
 model WeeklyPlan {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
@@ -1746,40 +1700,6 @@ model WeeklyPlan {
   @@index([fromDate, toDate], map: "idx_weekly_plan_dates")
   @@map("weeklyPlans")
 }
-
-// weekly plan lesson
-
-// model WeeklyPlanLesson {
-//   id   Int    @id @default(autoincrement())
-//   slug String @unique @db.VarChar(50)
-
-//   schoolSlug String @db.VarChar(50)
-//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
-
-//   weeklyPlanSlug String     @db.VarChar(50)
-//   weeklyPlan     WeeklyPlan @relation(fields: [weeklyPlanSlug], references: [slug], onDelete: Cascade)
-
-//   lessonOrder Int?
-
-//   day String
-
-//   teachingMethodology String @db.Text
-
-//   studentActivities String @db.Text
-
-//   assessment String @db.Text
-
-//   status    String    @default("active")
-//   isActive  Boolean   @default(true)
-//   deletedAt DateTime?
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@unique([weeklyPlanSlug, lessonOrder])
-//   @@index([weeklyPlanSlug])
-//   @@map("weekly_plan_lessons")
-// }
 
 model WeeklyPlanLesson {
   id   Int    @id @default(autoincrement())
@@ -3195,4 +3115,469 @@ enum CoScholasticGradeAuditAction {
   RESTORE_GRADES
   VIEW_GRADES
   GENERATE_PDF
+}
+
+//HRM 
+model HrmDepartment {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  departmentName String @db.VarChar(100)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  designations  HrmDesignation[]
+  shifts        HrmShift[]
+  basicSettings HrmBasicSetting[]
+
+  @@unique([schoolSlug, departmentName])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_departments")
+}
+
+model HrmDesignation {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  departmentSlug String
+  department     HrmDepartment @relation(fields: [departmentSlug], references: [slug], onDelete: Cascade)
+
+  designationName  String @db.VarChar(100)
+  designationLevel Int?
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  hrmAuthorizedPersons HrmAuthorizedPerson[]
+
+  @@unique([schoolSlug, departmentSlug, designationName])
+  @@unique([schoolSlug, departmentSlug, designationLevel])
+  @@index([schoolSlug])
+  @@index([departmentSlug])
+  @@index([status])
+  @@map("hrm_designations")
+}
+
+model HrmShift {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  departmentSlug String
+  department     HrmDepartment @relation(fields: [departmentSlug], references: [slug], onDelete: Cascade)
+
+  shiftName String @db.VarChar(100)
+  shiftCode String @db.VarChar(30)
+
+  loginTime  DateTime @db.Time(0)
+  logoutTime DateTime @db.Time(0)
+
+  loginBufferMinutes  Int @default(0)
+  logoutBufferMinutes Int @default(0)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  basicSettings HrmBasicSetting[]
+
+  @@unique([schoolSlug, departmentSlug, shiftName])
+  @@unique([schoolSlug, departmentSlug, shiftCode])
+  @@index([schoolSlug])
+  @@index([departmentSlug])
+  @@index([status])
+  @@map("hrm_shifts")
+}
+
+model HrmBasicSetting {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  departmentSlug String
+  department     HrmDepartment @relation(fields: [departmentSlug], references: [slug], onDelete: Cascade)
+
+  shiftSlug String?
+  shift     HrmShift? @relation(fields: [shiftSlug], references: [slug], onDelete: SetNull)
+
+  weekDay HrmWeekDay
+  dayType HrmDayType
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, departmentSlug, weekDay])
+  @@index([schoolSlug])
+  @@index([departmentSlug])
+  @@index([shiftSlug])
+  @@index([dayType])
+  @@index([status])
+  @@map("hrm_basic_settings")
+}
+
+enum HrmWeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SECOND_SATURDAY
+  FOURTH_SATURDAY
+  SUNDAY
+}
+
+enum HrmDayType {
+  WORKING
+  HOLIDAY
+}
+
+model HrmPayBand {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  payBandName String @db.VarChar(100)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  structures HrmPayBandStructure[]
+
+  @@unique([schoolSlug, payBandName])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_pay_bands")
+}
+
+model HrmPayBandImage {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @unique @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  image String? @db.VarChar(255)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hrm_pay_band_images")
+}
+
+model HrmPayBandStructure {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  payBandSlug String
+  payBand     HrmPayBand @relation(fields: [payBandSlug], references: [slug], onDelete: Cascade)
+
+  earningTypeSlug String?
+  earningType     HrmEarningType? @relation(fields: [earningTypeSlug], references: [slug], onDelete: SetNull)
+
+  deductionTypeSlug String?
+  deductionType     HrmDeductionType? @relation(fields: [deductionTypeSlug], references: [slug], onDelete: SetNull)
+
+  componentType HrmSalaryComponentType
+
+  calculationType HrmSalaryCalculationType
+  value           Decimal                  @db.Decimal(12, 2)
+
+  calculatedAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  calculationBase HrmSalaryCalculationBase @default(BASIC_PAY)
+
+  displayOrder Int @default(0)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([payBandSlug])
+  @@index([earningTypeSlug])
+  @@index([deductionTypeSlug])
+  @@index([componentType])
+  @@index([status])
+  @@map("hrm_pay_band_structures")
+}
+
+enum HrmSalaryComponentType {
+  EARNING
+  DEDUCTION
+}
+
+enum HrmSalaryCalculationType {
+  FIXED
+  PERCENT
+}
+
+enum HrmSalaryCalculationBase {
+  BASIC_PAY
+  GROSS_EARNING
+  CUSTOM
+}
+
+model HrmEarningType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  earningType String                   @db.VarChar(100)
+  valueType   HrmSalaryCalculationType
+  value       Decimal                  @default(0) @db.Decimal(12, 2)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payBandStructures HrmPayBandStructure[]
+
+  @@unique([schoolSlug, earningType])
+  @@index([schoolSlug])
+  @@index([valueType])
+  @@index([status])
+  @@map("hrm_earning_types")
+}
+
+model HrmDeductionType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  deductionType String                   @db.VarChar(100)
+  valueType     HrmSalaryCalculationType
+  value         Decimal                  @default(0) @db.Decimal(12, 2)
+  maximumValue  Decimal?                 @db.Decimal(12, 2)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payBandStructures HrmPayBandStructure[]
+
+  @@unique([schoolSlug, deductionType])
+  @@index([schoolSlug])
+  @@index([valueType])
+  @@index([status])
+  @@map("hrm_deduction_types")
+}
+
+model HrmAuthorizedPerson {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  designationSlug String
+  designation     HrmDesignation @relation(fields: [designationSlug], references: [slug], onDelete: Restrict)
+
+  personName String @db.VarChar(150)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, designationSlug, personName])
+  @@index([schoolSlug])
+  @@index([designationSlug])
+  @@index([status])
+  @@map("hrm_authorized_persons")
+}
+
+model HrmIdentityDocumentType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  documentName String @db.VarChar(150)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, documentName])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_identity_document_types")
+}
+
+model HrmDegreeDocumentType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  documentName String @db.VarChar(150)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, documentName])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_degree_document_types")
+}
+
+model HrmEmployeeLetterType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  letterTypeName String @db.VarChar(150)
+  letterContent  String @db.LongText
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, letterTypeName])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_employee_letter_types")
+}
+
+model HrmLeaveType {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  leaveType String @db.VarChar(100)
+
+  daysPerYear          Decimal @default(0) @db.Decimal(6, 2)
+  uptoYear             Int     @default(0)
+  daysPerYearAfterYear Decimal @default(0) @db.Decimal(6, 2)
+
+  carryForward Boolean @default(false)
+
+  maximumValue Decimal @default(0) @db.Decimal(8, 2)
+  leaveValue   Decimal @default(1) @db.Decimal(6, 2)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, leaveType])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_leave_types")
+}
+
+model HrmLoanInterest {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  durationMonths Int
+  annualInterest Decimal @db.Decimal(6, 2)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, durationMonths])
+  @@index([schoolSlug])
+  @@index([status])
+  @@map("hrm_loan_interests")
+}
+
+model HrmLoanSetting {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @unique @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  forecloseInterest Decimal @default(0) @db.Decimal(6, 2)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("hrm_loan_settings")
 }

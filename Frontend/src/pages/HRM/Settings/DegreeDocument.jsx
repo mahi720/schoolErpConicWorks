@@ -1,54 +1,123 @@
-import React, { useState } from "react";
-import { Edit, Trash2 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Edit, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
+
+import { useDegreeDocumentTypeStore } from "../../../store/hrm/settings/degreeDocumentType/degreeDocumentTypeStore";
+
+import {
+  degreeDocumentTypeInitialValues,
+  degreeDocumentTypeSchema,
+} from "../../../validations/hrm/settings/degreeDocumentType/degreeDocumentTypeValidation";
 
 export default function DegreeDocuments() {
-  const [docs, setDocs] = useState([
-    { id: 1, name: "SSC Marksheet" },
-    { id: 2, name: "HSC Marksheet" },
-    { id: 3, name: "Masters Degree" },
-    { id: 4, name: "Senior Secondary School" },
-    { id: 5, name: "Higher Secondary School" },
-  ]);
+  const [formData, setFormData] = useState(degreeDocumentTypeInitialValues);
 
-  const [docName, setDocName] = useState("");
-  const [editId, setEditId] = useState(null);
+  const [editData, setEditData] = useState(null);
 
-  const handleSave = () => {
-    if (!docName) return;
+  const {
+    degreeDocumentTypes,
+    loading,
+    submitLoading,
+    fetchDegreeDocumentTypes,
+    createDegreeDocumentType,
+    updateDegreeDocumentType,
+    deleteDegreeDocumentType,
+    restoreDegreeDocumentType,
+  } = useDegreeDocumentTypeStore();
 
-    if (editId) {
-      setDocs(
-        docs.map((item) =>
-          item.id === editId ? { ...item, name: docName } : item,
-        ),
+  useEffect(() => {
+    fetchDegreeDocumentTypes();
+  }, [fetchDegreeDocumentTypes]);
+
+  const sortedDocuments = useMemo(() => {
+    return [...degreeDocumentTypes].sort(
+      (first, second) =>
+        new Date(first.createdAt).getTime() -
+        new Date(second.createdAt).getTime(),
+    );
+  }, [degreeDocumentTypes]);
+
+  const handleChange = (event) => {
+    setFormData({
+      documentName: event.target.value,
+    });
+  };
+
+  const resetForm = () => {
+    setFormData(degreeDocumentTypeInitialValues);
+    setEditData(null);
+  };
+
+  const handleSave = async () => {
+    const validation = degreeDocumentTypeSchema.safeParse(formData);
+
+    if (!validation.success) {
+      toast.error(
+        validation.error.issues[0]?.message ||
+          "Please enter valid document name",
       );
 
-      setEditId(null);
-    } else {
-      setDocs([
-        ...docs,
-        {
-          id: Date.now(),
-          name: docName,
-        },
-      ]);
+      return;
     }
 
-    setDocName("");
+    const payload = {
+      documentName: validation.data.documentName.trim(),
+    };
+
+    let success = false;
+
+    if (editData) {
+      success = await updateDegreeDocumentType(editData.slug, payload);
+    } else {
+      success = await createDegreeDocumentType(payload);
+    }
+
+    if (success) {
+      resetForm();
+    }
   };
 
   const handleEdit = (item) => {
-    setDocName(item.name);
-    setEditId(item.id);
+    if (!item.isActive) {
+      toast.error("Inactive degree document type cannot be edited");
+
+      return;
+    }
+
+    setEditData(item);
+
+    setFormData({
+      documentName: item.documentName || "",
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
-  const handleCancel = () => {
-    setDocName("");
-    setEditId(null);
+  const handleDelete = async (item) => {
+    const confirmed = window.confirm(
+      `Kya aap "${item.documentName}" degree document type ko inactive karna chahte hain?`,
+    );
+
+    if (!confirmed) return;
+
+    const success = await deleteDegreeDocumentType(item.slug);
+
+    if (success && editData?.slug === item.slug) {
+      resetForm();
+    }
   };
 
-  const handleDelete = (id) => {
-    setDocs(docs.filter((item) => item.id !== id));
+  const handleRestore = async (item) => {
+    const confirmed = window.confirm(
+      `Kya aap "${item.documentName}" degree document type ko restore karna chahte hain?`,
+    );
+
+    if (!confirmed) return;
+
+    await restoreDegreeDocumentType(item.slug);
   };
 
   return (
@@ -57,83 +126,153 @@ export default function DegreeDocuments() {
 
       <hr className="border-gray-800" />
 
-      {/* Form */}
-
-      <div className="flex items-end gap-5">
-        <div className="flex flex-col gap-2">
-          <label className="text-gray-300">
-            Document Name <span className="text-red-500">*</span>
+      <div className="flex flex-col md:flex-row md:items-end gap-5">
+        <div className="flex flex-col gap-2 w-full md:w-80">
+          <label className="text-gray-300 text-sm">
+            Document Name
+            <span className="text-red-500"> *</span>
           </label>
 
           <input
-            value={docName}
-            onChange={(e) => setDocName(e.target.value)}
+            type="text"
+            value={formData.documentName}
+            onChange={handleChange}
+            disabled={submitLoading}
             placeholder="Document Name"
-            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white w-80 outline-none"
+            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white w-full outline-none focus:border-indigo-500 disabled:opacity-50"
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          className="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-lg text-white cursor-pointer"
-        >
-          {editId ? "Update" : "Save"}
-        </button>
-
-        {editId && (
+        <div className="flex gap-3">
           <button
-            onClick={handleCancel}
-            className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-lg text-white cursor-pointer"
+            type="button"
+            onClick={handleSave}
+            disabled={submitLoading}
+            className="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-lg text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Cancel
+            {submitLoading && <Loader2 size={17} className="animate-spin" />}
+
+            {submitLoading
+              ? editData
+                ? "Updating..."
+                : "Saving..."
+              : editData
+                ? "Update"
+                : "Save"}
           </button>
-        )}
+
+          {editData && (
+            <button
+              type="button"
+              onClick={resetForm}
+              disabled={submitLoading}
+              className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-lg text-white cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Table */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar">
+        <table className="w-full min-w-[700px]">
+          <thead className="bg-gray-800 sticky top-0 z-10">
+            <tr>
+              <th className="p-3 text-gray-300">S No.</th>
 
-      <table className="w-full">
-        <thead className="bg-gray-800">
-          <tr>
-            <th className="p-3 text-gray-300">S no.</th>
+              <th className="p-3 text-gray-300">Document Name</th>
 
-            <th className="p-3 text-gray-300">Document Name</th>
+              <th className="p-3 text-gray-300">Status</th>
 
-            <th className="p-3 text-gray-300">Options</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {docs.map((item, index) => (
-            <tr
-              key={item.id}
-              className="border-t border-gray-800 text-center hover:bg-gray-800/50"
-            >
-              <td className="p-3 text-gray-300">{index + 1}</td>
-
-              <td className="p-3 text-gray-300">{item.name}</td>
-
-              <td className="p-3 flex justify-center gap-2">
-                <button
-                  onClick={() => handleEdit(item)}
-                  title="Edit"
-                  className="bg-cyan-500 hover:bg-cyan-600 p-2 rounded-lg text-white cursor-pointer"
-                >
-                  <Edit size={16} />
-                </button>
-
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  title="Delete"
-                  className="bg-red-500 hover:bg-red-600 p-2 rounded-lg text-white cursor-pointer"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </td>
+              <th className="p-3 text-gray-300">Options</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="p-10 text-center text-gray-400">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 size={20} className="animate-spin" />
+                    Loading degree document types...
+                  </div>
+                </td>
+              </tr>
+            ) : sortedDocuments.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-10 text-center text-gray-400">
+                  No degree document types found
+                </td>
+              </tr>
+            ) : (
+              sortedDocuments.map((item, index) => (
+                <tr
+                  key={item.slug}
+                  className={`border-t border-gray-800 text-center ${
+                    item.isActive ? "hover:bg-gray-800/50" : "bg-red-500/5"
+                  }`}
+                >
+                  <td className="p-3 text-gray-300">{index + 1}.</td>
+
+                  <td className="p-3 text-gray-300">{item.documentName}</td>
+
+                  <td className="p-3">
+                    <span
+                      className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                        item.isActive
+                          ? "bg-green-500/15 text-green-400"
+                          : "bg-red-500/15 text-red-400"
+                      }`}
+                    >
+                      {item.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+
+                  <td className="p-3">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(item)}
+                        disabled={!item.isActive || submitLoading}
+                        title="Edit Degree Document Type"
+                        className={`p-2 rounded-lg text-white ${
+                          item.isActive
+                            ? "bg-cyan-500 hover:bg-cyan-600 cursor-pointer"
+                            : "bg-gray-700 opacity-50 cursor-not-allowed"
+                        }`}
+                      >
+                        <Edit size={16} />
+                      </button>
+
+                      {item.isActive ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item)}
+                          disabled={submitLoading}
+                          title="Delete Degree Document Type"
+                          className="bg-red-500 hover:bg-red-600 p-2 rounded-lg text-white cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleRestore(item)}
+                          disabled={submitLoading}
+                          title="Restore Degree Document Type"
+                          className="bg-green-500 hover:bg-green-600 p-2 rounded-lg text-white cursor-pointer disabled:opacity-50"
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
