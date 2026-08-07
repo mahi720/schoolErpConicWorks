@@ -168,7 +168,6 @@ export default function BasicSettings() {
     }
 
     const loginTime = formatTime(shift.loginTime);
-
     const logoutTime = formatTime(shift.logoutTime);
 
     return `${shift.shiftName} (${shift.shiftCode}) [${loginTime} - ${logoutTime}]`;

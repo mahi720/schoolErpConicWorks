@@ -120,6 +120,10 @@ model School {
   hrmLoanInterests                 HrmLoanInterest[]
   hrmLoanSetting                   HrmLoanSetting?
   hrmPayBandImage                  HrmPayBandImage?
+  hrmEmployees                     HrmEmployee[]
+  hrmEmployeeBankDetails           HrmEmployeeBankDetail[]
+  hrmEmployeeLoginSettings         HrmEmployeeLoginSetting[]
+  // hrmEmployeeDrfSettings           HrmEmployeeDrfSetting[]
 
   @@map("schools")
 }
@@ -208,6 +212,8 @@ model User {
   submittedCoScholasticGrades CoScholasticGradeSubmission[] @relation("CoScholasticGradeSubmittedBy")
   lockedCoScholasticGrades    CoScholasticGradeSubmission[] @relation("CoScholasticGradeLockedBy")
   coScholasticGradeAuditLogs  CoScholasticGradeAuditLog[]   @relation("CoScholasticGradeAuditPerformedBy")
+  hrmEmployee                 HrmEmployee?
+  // updatedHrmEmployeeDrfSettings HrmEmployeeDrfSetting[]       @relation("HrmEmployeeDrfSettingUpdatedBy")
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -3118,6 +3124,228 @@ enum CoScholasticGradeAuditAction {
 }
 
 //HRM 
+
+// HRM Employee table
+
+// enum HrmEmployeeGender {
+//   MALE
+//   FEMALE
+//   OTHER
+// }
+
+// enum HrmEmployeeMaritalStatus {
+//   SINGLE
+//   MARRIED
+//   DIVORCED
+//   WIDOWED
+//   SEPARATED
+// }
+
+enum HrmEmployeeEmploymentStatus {
+  ACTIVE
+  PROBATION
+  NOTICE_PERIOD
+  SUSPENDED
+  RESIGNED
+  TERMINATED
+  RETIRED
+  DECEASED
+}
+
+enum HrmEmployeeLoginStatus {
+  DEFAULT
+  FLEXIBLE
+  NO_BOUNDATION
+}
+
+// enum HrmEmployeeDocumentCategory {
+//   IDENTITY
+//   DEGREE
+//   EXPERIENCE
+//   APPOINTMENT
+//   BANK
+//   OTHER
+// }
+
+enum HrmNatureOfAppointment {
+  PERMANENT
+  CONTRACTUAL
+  ADHOC
+  TEMPORARY
+  PART_TIME
+  PROBATION
+  GUEST_FACULTY
+  DAILY_WAGES
+}
+
+model HrmEmployee {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  userSlug String? @unique @db.VarChar(50)
+  user     User?   @relation(fields: [userSlug], references: [slug], onDelete: SetNull)
+
+  employeeId     String  @db.VarChar(50)
+  employeeSerial Int
+  employeeCode   String? @db.VarChar(50)
+
+  fullName String  @db.VarChar(150)
+  nickName String? @db.VarChar(100)
+
+  phoneNumber String @db.VarChar(20)
+  email       String @db.VarChar(191)
+
+  dateOfBirth DateTime?
+
+  state    String? @db.VarChar(100)
+  city     String? @db.VarChar(100)
+  district String? @db.VarChar(100)
+  pincode  String? @db.VarChar(10)
+  address  String? @db.Text
+
+  qualification String? @db.Text
+
+  departmentSlug String
+  department     HrmDepartment @relation(fields: [departmentSlug], references: [slug], onDelete: Restrict)
+
+  designationSlug String
+  designation     HrmDesignation @relation(fields: [designationSlug], references: [slug], onDelete: Restrict)
+
+  natureOfAppointment HrmNatureOfAppointment
+
+  payBandSlug String
+  payBand     HrmPayBand @relation(fields: [payBandSlug], references: [slug], onDelete: Restrict)
+
+  joiningDate DateTime
+
+  bankDetail   HrmEmployeeBankDetail?
+  loginSetting HrmEmployeeLoginSetting?
+
+  jobRoleDescription String? @db.Text
+
+  isDrfApplicable Boolean @default(false)
+
+  employmentStatus HrmEmployeeEmploymentStatus @default(ACTIVE)
+
+  transferGroupSlug String? @db.VarChar(50)
+  transferSequence  Int     @default(1)
+
+  previousEmployeeSlug String? @db.VarChar(50)
+
+  isTransferred Boolean   @default(false)
+  transferredAt DateTime?
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([userSlug])
+  @@index([departmentSlug])
+  @@index([designationSlug])
+  @@index([payBandSlug])
+  @@index([natureOfAppointment])
+  @@index([employmentStatus])
+  @@index([status])
+  @@index([schoolSlug, employeeId])
+  @@index([schoolSlug, employeeSerial])
+  @@index([schoolSlug, employeeCode])
+  @@index([schoolSlug, email])
+  @@index([schoolSlug, phoneNumber])
+  @@index([schoolSlug, transferGroupSlug])
+  @@index([schoolSlug, isTransferred])
+  @@map("hrm_employees")
+}
+
+model HrmEmployeeBankDetail {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @unique @db.VarChar(50)
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Cascade)
+
+  bankName          String? @db.VarChar(150)
+  bankAccountNumber String? @db.VarChar(50)
+  ifscCode          String? @db.VarChar(20)
+
+  panNumber    String? @db.VarChar(20)
+  uanNumber    String? @db.VarChar(30)
+  aadharNumber String? @db.VarChar(20)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, bankAccountNumber])
+  @@unique([schoolSlug, panNumber])
+  @@unique([schoolSlug, uanNumber])
+  @@unique([schoolSlug, aadharNumber])
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@map("hrm_employee_bank_details")
+}
+
+model HrmEmployeeLoginSetting {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @unique @db.VarChar(50)
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Cascade)
+
+  loginStatus HrmEmployeeLoginStatus @default(DEFAULT)
+
+  inBufferMinutes  Int?
+  outBufferMinutes Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([loginStatus])
+  @@map("hrm_employee_login_settings")
+}
+
+// model HrmEmployeeDrfSetting {
+//   id   Int    @id @default(autoincrement())
+//   slug String @unique @db.VarChar(50)
+
+//   schoolSlug String @db.VarChar(50)
+//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+//   employeeSlug String      @unique @db.VarChar(50)
+//   employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Cascade)
+
+//   isApplicable Boolean @default(false)
+
+//   effectiveFrom DateTime?
+//   effectiveTo   DateTime?
+
+//   updatedBySlug String? @db.VarChar(50)
+//   updatedBy     User?   @relation("HrmEmployeeDrfSettingUpdatedBy", fields: [updatedBySlug], references: [slug], onDelete: SetNull)
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@index([schoolSlug])
+//   @@index([employeeSlug])
+//   @@index([isApplicable])
+//   @@map("hrm_employee_drf_settings")
+// }
+
+// Hrm settings master
+
 model HrmDepartment {
   id   Int    @id @default(autoincrement())
   slug String @unique @db.VarChar(50)
@@ -3137,6 +3365,7 @@ model HrmDepartment {
   designations  HrmDesignation[]
   shifts        HrmShift[]
   basicSettings HrmBasicSetting[]
+  hrmEmployees  HrmEmployee[]
 
   @@unique([schoolSlug, departmentName])
   @@index([schoolSlug])
@@ -3164,6 +3393,7 @@ model HrmDesignation {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   hrmAuthorizedPersons HrmAuthorizedPerson[]
+  hrmEmployees         HrmEmployee[]
 
   @@unique([schoolSlug, departmentSlug, designationName])
   @@unique([schoolSlug, departmentSlug, designationLevel])
@@ -3274,7 +3504,8 @@ model HrmPayBand {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  structures HrmPayBandStructure[]
+  structures   HrmPayBandStructure[]
+  hrmEmployees HrmEmployee[]
 
   @@unique([schoolSlug, payBandName])
   @@index([schoolSlug])
@@ -3325,6 +3556,8 @@ model HrmPayBandStructure {
   calculatedAmount Decimal @default(0) @db.Decimal(12, 2)
 
   calculationBase HrmSalaryCalculationBase @default(BASIC_PAY)
+
+  isBasicPay Boolean @default(false)
 
   displayOrder Int @default(0)
 

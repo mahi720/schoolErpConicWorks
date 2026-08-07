@@ -224,6 +224,7 @@ export default function PayBand() {
       state: {
         payBandSlug: item.slug,
         payBandName: item.payBandName,
+        payBandAmount: Number(item.payBandName),
       },
     });
   };

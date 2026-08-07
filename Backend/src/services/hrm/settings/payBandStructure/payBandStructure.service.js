@@ -12,19 +12,65 @@ const verifyPayBand = async ({ schoolSlug, payBandSlug }) => {
   if (!payBand) throw new Error("Active pay band not found");
 };
 
-const verifyAndResolveRows = async ({ schoolSlug, structures }) => {
+const verifyAndResolveRows = async ({
+  schoolSlug,
+  structures,
+}) => {
   const resolved = [];
 
   for (const row of structures) {
-    if (row.componentType === "EARNING") {
-      const earningType = await findEarningTypeForStructureRepo({ schoolSlug, slug: row.earningTypeSlug });
-      if (!earningType) throw new Error("Active earning type not found");
-      resolved.push({ ...row, earningType, deductionType: null });
-    } else {
-      const deductionType = await findDeductionTypeForStructureRepo({ schoolSlug, slug: row.deductionTypeSlug });
-      if (!deductionType) throw new Error("Active deduction type not found");
-      resolved.push({ ...row, earningType: null, deductionType });
+    if (row.isBasicPay) {
+      resolved.push({
+        ...row,
+        earningTypeSlug: null,
+        deductionTypeSlug: null,
+        earningType: null,
+        deductionType: null,
+        calculationType: "FIXED",
+      });
+
+      continue;
     }
+
+    if (row.componentType === "EARNING") {
+      const earningType =
+        await findEarningTypeForStructureRepo({
+          schoolSlug,
+          slug: row.earningTypeSlug,
+        });
+
+      if (!earningType) {
+        throw new Error(
+          "Active earning type not found",
+        );
+      }
+
+      resolved.push({
+        ...row,
+        earningType,
+        deductionType: null,
+      });
+
+      continue;
+    }
+
+    const deductionType =
+      await findDeductionTypeForStructureRepo({
+        schoolSlug,
+        slug: row.deductionTypeSlug,
+      });
+
+    if (!deductionType) {
+      throw new Error(
+        "Active deduction type not found",
+      );
+    }
+
+    resolved.push({
+      ...row,
+      earningType: null,
+      deductionType,
+    });
   }
 
   return resolved;
@@ -40,17 +86,29 @@ export const savePayBandStructureService = async ({ schoolSlug, payBandSlug, pay
 
   const resolvedRows = await verifyAndResolveRows({ schoolSlug, structures: payload.structures });
 
-  const basicPayRow = resolvedRows.find((row) =>
-    row.componentType === "EARNING" && row.earningType.earningType === "BASIC PAY"
+  const basicPayRow = resolvedRows.find(
+    (row) =>
+      row.componentType === "EARNING" &&
+      row.isBasicPay === true,
   );
 
-  if (!basicPayRow) throw new Error("BASIC PAY earning type is required in structure");
+  if (!basicPayRow) {
+    throw new Error(
+      "BASIC PAY is required in structure",
+    );
+  }
   if (basicPayRow.calculationType !== "FIXED") throw new Error("BASIC PAY must be fixed");
 
   const basicPay = Number(basicPayRow.value);
   const earningRows = resolvedRows
-    .filter((row) => row.componentType === "EARNING")
-    .sort((a, b) => a.displayOrder - b.displayOrder);
+    .filter(
+      (row) =>
+        row.componentType === "EARNING",
+    )
+    .sort(
+      (a, b) =>
+        a.displayOrder - b.displayOrder,
+    );
   const deductionRows = resolvedRows
     .filter((row) => row.componentType === "DEDUCTION")
     .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -67,14 +125,30 @@ export const savePayBandStructureService = async ({ schoolSlug, payBandSlug, pay
       slug: randomUUID(),
       schoolSlug,
       payBandSlug,
-      earningTypeSlug: row.earningTypeSlug,
+
+      isBasicPay: Boolean(row.isBasicPay),
+
+      earningTypeSlug: row.isBasicPay
+        ? null
+        : row.earningTypeSlug,
+
       deductionTypeSlug: null,
+
       componentType: "EARNING",
-      calculationType: row.calculationType,
+
+      calculationType: row.isBasicPay
+        ? "FIXED"
+        : row.calculationType,
+
       value: row.value,
+
       calculatedAmount,
-      calculationBase: row.calculationBase,
-      displayOrder: row.displayOrder,
+
+      calculationBase:
+        row.calculationBase,
+
+      displayOrder:
+        row.displayOrder,
     });
   }
 
@@ -90,14 +164,28 @@ export const savePayBandStructureService = async ({ schoolSlug, payBandSlug, pay
       slug: randomUUID(),
       schoolSlug,
       payBandSlug,
+
+      isBasicPay: false,
+
       earningTypeSlug: null,
-      deductionTypeSlug: row.deductionTypeSlug,
+
+      deductionTypeSlug:
+        row.deductionTypeSlug,
+
       componentType: "DEDUCTION",
-      calculationType: row.calculationType,
+
+      calculationType:
+        row.calculationType,
+
       value: row.value,
+
       calculatedAmount,
-      calculationBase: row.calculationBase,
-      displayOrder: row.displayOrder,
+
+      calculationBase:
+        row.calculationBase,
+
+      displayOrder:
+        row.displayOrder,
     });
   }
 

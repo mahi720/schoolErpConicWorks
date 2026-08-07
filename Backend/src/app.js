@@ -34,6 +34,7 @@ import termExamMarkSubmissionRoutes from "./routes/examManager/markSubmission/te
 import topicWiseGradeSubmissionRoutes from "./routes/examManager/markSubmission/topicWiseGradeSubmission/topicWiseGradeSubmission.routes.js";
 import coScholasticGradeSubmissionRoutes from "./routes/examManager/markSubmission/coScholasticGradeSubmission/coScholasticGradeSubmission.routes.js";
 import hrmSettingsRouter from "./routes/hrm/setting/hrmSettings.routes.js";
+import employeeRoutes from "./routes/HRM/employee/employee.routes.js";
 
 
 
@@ -116,6 +117,7 @@ app.use("/api/term-exam-mark-submissions", termExamMarkSubmissionRoutes);
 app.use("/api/topic-wise-grade-submissions", topicWiseGradeSubmissionRoutes);
 app.use("/api/co-scholastic-grade-submissions", coScholasticGradeSubmissionRoutes);
 app.use("/api/hrm/settings", hrmSettingsRouter);
+app.use("/api/hrm/employees", employeeRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
