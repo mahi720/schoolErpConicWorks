@@ -34,6 +34,238 @@ const getNumericValue = (value) => {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 };
 
+function TableCard({
+  title,
+  data,
+  section,
+  icon: Icon,
+  colorFrom,
+  colorTo,
+  initializing,
+  earningTypeLoading,
+  deductionTypeLoading,
+  structureLoading,
+  onValueChange,
+  onToggleEdit,
+}) {
+  const sectionTotal = data.reduce(
+    (total, item) => total + Number(item.amount || 0),
+    0,
+  );
+
+  const isLoading =
+    initializing ||
+    earningTypeLoading ||
+    deductionTypeLoading ||
+    structureLoading;
+
+  return (
+    <div className="min-w-0 w-full bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden transition-all duration-300 hover:border-gray-700">
+      <div
+        className={`bg-gradient-to-r ${colorFrom} ${colorTo} px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3`}
+      >
+        <div className="min-w-0 flex items-center gap-3">
+          <div className="shrink-0 bg-white/10 backdrop-blur-sm p-2 rounded-lg">
+            <Icon size={20} className="text-white" />
+          </div>
+
+          <h2 className="truncate text-xl font-bold text-white">{title}</h2>
+        </div>
+
+        <div className="shrink-0 self-start sm:self-auto bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+          <span className="text-white text-sm font-semibold whitespace-nowrap">
+            Total: ₹ {sectionTotal.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      <div className="w-full min-w-0 overflow-auto custom-scrollbar max-h-[500px]">
+        <table className="w-full min-w-[650px] table-fixed">
+          <colgroup>
+            <col className="w-[8%]" />
+            <col className="w-[25%]" />
+            <col className="w-[18%]" />
+            <col className="w-[21%]" />
+            <col className="w-[20%]" />
+            <col className="w-[8%]" />
+          </colgroup>
+
+          <thead className="bg-gray-800/50 border-b border-gray-800 sticky top-0 z-10">
+            <tr>
+              <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Sno.
+              </th>
+
+              <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Component
+              </th>
+
+              <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Type
+              </th>
+
+              <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Value
+              </th>
+
+              <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Amount
+              </th>
+
+              <th className="px-2 sm:px-3 py-3" />
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-gray-800">
+            {isLoading && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-gray-400"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 size={18} className="animate-spin" />
+                    Loading {title.toLowerCase()}...
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && data.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-gray-500"
+                >
+                  No {title.toLowerCase()} found
+                </td>
+              </tr>
+            )}
+
+            {!isLoading &&
+              data.map((item, index) => {
+                const inputDisabled = item.isBasicPay || !item.editable;
+                const typeDisabled = item.isBasicPay || !item.editable;
+
+                return (
+                  <tr
+                    key={item.id}
+                    className="group hover:bg-gray-800/50 transition-colors"
+                  >
+                    <td className="px-2 sm:px-3 py-3 text-xs sm:text-sm text-gray-500 font-medium">
+                      {index + 1}.
+                    </td>
+
+                    <td className="min-w-0 px-2 sm:px-3 py-3">
+                      <span className="block break-words text-xs sm:text-sm font-semibold text-gray-200 leading-5">
+                        {item.name}
+                      </span>
+                    </td>
+
+                    <td className="min-w-0 px-2 sm:px-3 py-3">
+                      <select
+                        value={item.isBasicPay ? "Fixed" : item.type}
+                        onChange={(event) =>
+                          onValueChange(
+                            section,
+                            item.id,
+                            "type",
+                            event.target.value,
+                          )
+                        }
+                        disabled={typeDisabled}
+                        className={`w-full min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm text-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                          typeDisabled
+                            ? "opacity-60 cursor-not-allowed"
+                            : "cursor-pointer hover:border-gray-600"
+                        }`}
+                      >
+                        <option value="Fixed">Fixed</option>
+                        <option value="Percent">Percent</option>
+                      </select>
+                    </td>
+
+                    <td className="min-w-0 px-2 sm:px-3 py-3">
+                      <div className="relative min-w-0">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.value}
+                          onChange={(event) =>
+                            onValueChange(
+                              section,
+                              item.id,
+                              "value",
+                              event.target.value,
+                            )
+                          }
+                          disabled={inputDisabled}
+                          className={`w-full min-w-0 bg-gray-800 border border-gray-700 rounded-lg pl-6 sm:pl-7 pr-1.5 sm:pr-2 py-1.5 text-xs sm:text-sm text-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                            inputDisabled
+                              ? "opacity-60 cursor-not-allowed"
+                              : "hover:border-gray-600"
+                          }`}
+                        />
+
+                        {item.type === "Percent" && !item.isBasicPay ? (
+                          <Percent
+                            size={13}
+                            className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 text-gray-500"
+                          />
+                        ) : (
+                          <IndianRupee
+                            size={13}
+                            className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 text-gray-500"
+                          />
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="min-w-0 px-2 sm:px-3 py-3">
+                      <span
+                        className={`block break-words text-xs sm:text-sm font-bold ${
+                          section === "earnings"
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        ₹{" "}
+                        {Number(item.amount || 0).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </td>
+
+                    <td className="px-1 sm:px-2 py-3 text-center">
+                      {!item.isBasicPay && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleEdit(section, item.id)}
+                          className={`p-1.5 rounded-lg transition-all ${
+                            item.editable
+                              ? "bg-indigo-500/20 text-indigo-400 cursor-pointer"
+                              : "text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer"
+                          }`}
+                          title={
+                            item.editable ? "Editing mode" : "Edit component"
+                          }
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function PaybandStructure() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,6 +306,10 @@ export default function PaybandStructure() {
     fetchPayBandStructure,
     savePayBandStructure,
   } = usePayBandStructureStore();
+
+  const hasSavedStructure = useMemo(() => {
+    return Array.isArray(structures) && structures.length > 0;
+  }, [structures]);
 
   useEffect(() => {
     if (!payBandSlug) {
@@ -324,6 +560,10 @@ export default function PaybandStructure() {
     const payload = {
       structures: [
         ...earnings.map((item, index) => ({
+          // Existing DB row's slug preserve.
+          // Null for new rows → new slug generate.
+          slug: item.structureSlug || null,
+
           componentType: "EARNING",
 
           isBasicPay: Boolean(item.isBasicPay),
@@ -344,6 +584,9 @@ export default function PaybandStructure() {
         })),
 
         ...deductions.map((item, index) => ({
+          // Existing DB row slug preserve.
+          slug: item.structureSlug || null,
+
           componentType: "DEDUCTION",
 
           isBasicPay: false,
@@ -401,241 +644,13 @@ export default function PaybandStructure() {
     }, 3000);
   };
 
-  const TableCard = ({
-    title,
-    data,
-    section,
-    icon: Icon,
-    colorFrom,
-    colorTo,
-  }) => {
-    const sectionTotal = data.reduce((total, item) => total + item.amount, 0);
-
-    return (
-      <div className="min-w-0 w-full bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden transition-all duration-300 hover:border-gray-700">
-        <div
-          className={`bg-gradient-to-r ${colorFrom} ${colorTo} px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3`}
-        >
-          <div className="min-w-0 flex items-center gap-3">
-            <div className="shrink-0 bg-white/10 backdrop-blur-sm p-2 rounded-lg">
-              <Icon size={20} className="text-white" />
-            </div>
-
-            <h2 className="truncate text-xl font-bold text-white">{title}</h2>
-          </div>
-
-          <div className="shrink-0 self-start sm:self-auto bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-            <span className="text-white text-sm font-semibold whitespace-nowrap">
-              Total: ₹ {sectionTotal.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        <div className="w-full min-w-0 overflow-hidden">
-          <table className="w-full table-fixed">
-            <colgroup>
-              <col className="w-[8%]" />
-              <col className="w-[25%]" />
-              <col className="w-[18%]" />
-              <col className="w-[21%]" />
-              <col className="w-[20%]" />
-              <col className="w-[8%]" />
-            </colgroup>
-
-            <thead className="bg-gray-800/50 border-b border-gray-800">
-              <tr>
-                <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Sno.
-                </th>
-
-                <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Component
-                </th>
-
-                <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Type
-                </th>
-
-                <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Value
-                </th>
-
-                <th className="px-2 sm:px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Amount
-                </th>
-
-                <th className="px-2 sm:px-3 py-3" />
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray-800">
-              {(initializing ||
-                earningTypeLoading ||
-                deductionTypeLoading ||
-                structureLoading) && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-10 text-center text-gray-400"
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 size={18} className="animate-spin" />
-                      Loading {title.toLowerCase()}
-                      ...
-                    </div>
-                  </td>
-                </tr>
-              )}
-
-              {!initializing &&
-                !earningTypeLoading &&
-                !deductionTypeLoading &&
-                !structureLoading &&
-                data.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-10 text-center text-gray-500"
-                    >
-                      No {title.toLowerCase()} found
-                    </td>
-                  </tr>
-                )}
-
-              {!initializing &&
-                !earningTypeLoading &&
-                !deductionTypeLoading &&
-                !structureLoading &&
-                data.map((item, index) => {
-                  const inputDisabled = !item.editable;
-
-                  const typeDisabled = item.isBasicPay || inputDisabled;
-
-                  return (
-                    <tr
-                      key={item.id}
-                      className="group hover:bg-gray-800/50 transition-colors"
-                    >
-                      <td className="px-2 sm:px-3 py-3 text-xs sm:text-sm text-gray-500 font-medium">
-                        {index + 1}.
-                      </td>
-
-                      <td className="min-w-0 px-2 sm:px-3 py-3">
-                        <span className="block break-words text-xs sm:text-sm font-semibold text-gray-200 leading-5">
-                          {item.name}
-                        </span>
-                      </td>
-
-                      <td className="min-w-0 px-2 sm:px-3 py-3">
-                        <select
-                          value={item.isBasicPay ? "Fixed" : item.type}
-                          onChange={(event) =>
-                            handleValueChange(
-                              section,
-                              item.id,
-                              "type",
-                              event.target.value,
-                            )
-                          }
-                          disabled={typeDisabled}
-                          className={`w-full min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm text-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                            typeDisabled
-                              ? "opacity-60 cursor-not-allowed"
-                              : "cursor-pointer hover:border-gray-600"
-                          }`}
-                        >
-                          <option value="Fixed">Fixed</option>
-
-                          <option value="Percent">Percent</option>
-                        </select>
-                      </td>
-
-                      <td className="min-w-0 px-2 sm:px-3 py-3">
-                        <div className="relative min-w-0">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.value}
-                            onChange={(event) =>
-                              handleValueChange(
-                                section,
-                                item.id,
-                                "value",
-                                event.target.value,
-                              )
-                            }
-                            disabled={inputDisabled}
-                            className={`w-full min-w-0 bg-gray-800 border border-gray-700 rounded-lg pl-6 sm:pl-7 pr-1.5 sm:pr-2 py-1.5 text-xs sm:text-sm text-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                              inputDisabled
-                                ? "opacity-60 cursor-not-allowed"
-                                : "hover:border-gray-600"
-                            }`}
-                          />
-
-                          {item.type === "Percent" && !item.isBasicPay ? (
-                            <Percent
-                              size={13}
-                              className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 text-gray-500"
-                            />
-                          ) : (
-                            <IndianRupee
-                              size={13}
-                              className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 text-gray-500"
-                            />
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="min-w-0 px-2 sm:px-3 py-3">
-                        <span
-                          className={`block break-words text-xs sm:text-sm font-bold ${
-                            section === "earnings"
-                              ? "text-green-400"
-                              : "text-red-400"
-                          }`}
-                        >
-                          ₹{" "}
-                          {item.amount.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </td>
-
-                      <td className="px-1 sm:px-2 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleEdit(section, item.id)}
-                          className={`p-1.5 rounded-lg transition-all ${
-                            item.editable
-                              ? "bg-indigo-500/20 text-indigo-400 cursor-pointer"
-                              : "text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer"
-                          }`}
-                          title={
-                            item.editable ? "Editing mode" : "Edit component"
-                          }
-                        >
-                          <Edit size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="w-full min-w-0 min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 p-3 sm:p-4 lg:p-6">
       <div className="w-full min-w-0 space-y-6">
         <div className="w-full min-w-0 bg-gray-900 rounded-2xl border border-gray-800 p-4 sm:p-6 shadow-xl">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
                 <div className="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 p-2 rounded-xl shadow-lg">
                   <DollarSign size={24} className="text-white" />
                 </div>
@@ -643,15 +658,43 @@ export default function PaybandStructure() {
                 <h1 className="truncate text-xl sm:text-2xl font-bold text-white">
                   Payband Structure
                 </h1>
+
+                {!initializing && !structureLoading && (
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      hasSavedStructure
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        : "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                    }`}
+                  >
+                    {hasSavedStructure
+                      ? "Saved Structure"
+                      : "Default Structure"}
+                  </span>
+                )}
               </div>
 
-              <p className="ml-0 sm:ml-12 text-sm sm:text-base text-gray-400">
-                Configure salary components for{" "}
-                <span className="text-indigo-400 font-semibold">
-                  {payBandName}
-                </span>{" "}
-                payband
-              </p>
+              <div className="ml-0 sm:ml-12">
+                <p className="text-sm sm:text-base text-gray-400">
+                  Configure salary components for{" "}
+                  <span className="text-indigo-400 font-semibold">
+                    {payBandName}
+                  </span>{" "}
+                  payband
+                </p>
+
+                {!initializing && !structureLoading && (
+                  <p
+                    className={`text-xs mt-1 ${
+                      hasSavedStructure ? "text-emerald-400" : "text-yellow-400"
+                    }`}
+                  >
+                    {hasSavedStructure
+                      ? "This structure is already saved in the database."
+                      : "Showing default values. Click Save Changes to save this structure."}
+                  </p>
+                )}
+              </div>
             </div>
 
             <button
@@ -691,6 +734,12 @@ export default function PaybandStructure() {
             icon={TrendingUp}
             colorFrom="from-emerald-600"
             colorTo="to-green-700"
+            initializing={initializing}
+            earningTypeLoading={earningTypeLoading}
+            deductionTypeLoading={deductionTypeLoading}
+            structureLoading={structureLoading}
+            onValueChange={handleValueChange}
+            onToggleEdit={toggleEdit}
           />
 
           <TableCard
@@ -700,6 +749,12 @@ export default function PaybandStructure() {
             icon={TrendingDown}
             colorFrom="from-red-600"
             colorTo="to-red-700"
+            initializing={initializing}
+            earningTypeLoading={earningTypeLoading}
+            deductionTypeLoading={deductionTypeLoading}
+            structureLoading={structureLoading}
+            onValueChange={handleValueChange}
+            onToggleEdit={toggleEdit}
           />
         </div>
 

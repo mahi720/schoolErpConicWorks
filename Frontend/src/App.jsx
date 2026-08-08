@@ -71,6 +71,7 @@ import PaybandStructure from "./pages/HRM/PaybandStructure";
 import Employee from "./pages/HRM/Employees/Employee";
 import AddEmployee from "./pages/HRM/Employees/AddEmployeeForm";
 import SalaryStructure from "./pages/HRM/Employees/SalaryStructure";
+import EmployeeSalaryIncrement from "./pages/HRM/Employees/EmployeeSalaryIncrement";
 import AttendanceManagement from "./pages/HRM/AttendanceManagement/AttendanceManagement";
 import EmployeesSalary from "./pages/HRM/Salaries/EmployeesSalary";
 import SalaryDetails from "./pages/HRM/Salaries/SalaryDetails";
@@ -300,6 +301,10 @@ function App() {
                         <Route
                           path="/hrm/salary-management/salary-details"
                           element={<SalaryDetails />}
+                        />
+                        <Route
+                          path="/hrm/employees/salary-increments/history"
+                          element={<EmployeeSalaryIncrement />}
                         />
                         <Route path="/hrm/event" element={<EventCalendar />} />
                         <Route path="/hrm/holidays" element={<Holiday />} />

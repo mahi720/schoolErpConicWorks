@@ -124,6 +124,9 @@ model School {
   hrmEmployeeBankDetails           HrmEmployeeBankDetail[]
   hrmEmployeeLoginSettings         HrmEmployeeLoginSetting[]
   // hrmEmployeeDrfSettings           HrmEmployeeDrfSetting[]
+  hrmEmployeeSalaryStructures      HrmEmployeeSalaryStructure[]
+  hrmEmployeeSalaryStructureItems  HrmEmployeeSalaryStructureItem[]
+  hrmEmployeeSalaryIncrements      HrmEmployeeSalaryIncrement[]
 
   @@map("schools")
 }
@@ -3242,8 +3245,10 @@ model HrmEmployee {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  hrmEmployeeSalaryStructure  HrmEmployeeSalaryStructure?
+  hrmEmployeeSalaryIncrements HrmEmployeeSalaryIncrement[]
 
   @@index([schoolSlug])
   @@index([userSlug])
@@ -3315,6 +3320,136 @@ model HrmEmployeeLoginSetting {
   @@index([employeeSlug])
   @@index([loginStatus])
   @@map("hrm_employee_login_settings")
+}
+
+model HrmEmployeeSalaryStructure {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @unique @db.VarChar(50)
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Cascade)
+
+  payBandSlug String
+  payBand     HrmPayBand @relation(fields: [payBandSlug], references: [slug], onDelete: Restrict)
+
+  basicSalary Decimal @default(0) @db.Decimal(12, 2)
+
+  grossEarnings   Decimal @default(0) @db.Decimal(12, 2)
+  totalDeductions Decimal @default(0) @db.Decimal(12, 2)
+  netSalary       Decimal @default(0) @db.Decimal(12, 2)
+
+  salaryGenerationStopped Boolean   @default(false)
+  salaryStoppedAt         DateTime?
+  salaryResumedAt         DateTime?
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  items HrmEmployeeSalaryStructureItem[]
+
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  hrmEmployeeSalaryIncrements HrmEmployeeSalaryIncrement[]
+
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([payBandSlug])
+  @@index([status])
+  @@map("hrm_employee_salary_structures")
+}
+
+model HrmEmployeeSalaryStructureItem {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSalaryStructureSlug String
+  employeeSalaryStructure     HrmEmployeeSalaryStructure @relation(fields: [employeeSalaryStructureSlug], references: [slug], onDelete: Cascade)
+
+  componentType HrmSalaryComponentType
+
+  earningTypeSlug String?
+  earningType     HrmEarningType? @relation(fields: [earningTypeSlug], references: [slug], onDelete: Restrict)
+
+  deductionTypeSlug String?
+  deductionType     HrmDeductionType? @relation(fields: [deductionTypeSlug], references: [slug], onDelete: Restrict)
+
+  calculationType HrmSalaryCalculationType
+
+  value Decimal @default(0) @db.Decimal(12, 2)
+
+  calculationBase HrmSalaryCalculationBase @default(BASIC_PAY)
+
+  componentName String? @db.VarChar(150)
+
+  amount Decimal @default(0) @db.Decimal(12, 2)
+
+  displayOrder Int @default(0)
+
+  isPayBandDefault Boolean @default(false)
+  isModified       Boolean @default(false)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  hrmPayBand   HrmPayBand? @relation(fields: [hrmPayBandId], references: [id])
+  hrmPayBandId Int?
+
+  @@index([schoolSlug])
+  @@index([employeeSalaryStructureSlug])
+  @@index([earningTypeSlug])
+  @@index([deductionTypeSlug])
+  @@index([componentType])
+  @@index([displayOrder])
+  @@map("hrm_employee_salary_structure_items")
+}
+
+model HrmEmployeeSalaryIncrement {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Cascade)
+
+  employeeSalaryStructureSlug String
+  employeeSalaryStructure     HrmEmployeeSalaryStructure @relation(fields: [employeeSalaryStructureSlug], references: [slug], onDelete: Cascade)
+
+  payBandSlug String     @db.VarChar(50)
+  payBand     HrmPayBand @relation(fields: [payBandSlug], references: [slug], onDelete: Restrict)
+
+  incrementType  HrmSalaryCalculationType
+  incrementValue Decimal                  @db.Decimal(12, 2)
+
+  previousBasicSalary Decimal @db.Decimal(12, 2)
+  incrementAmount     Decimal @db.Decimal(12, 2)
+  newBasicSalary      Decimal @db.Decimal(12, 2)
+
+  createdBySlug String? @db.VarChar(50)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([employeeSalaryStructureSlug])
+  @@index([createdAt])
+  @@map("hrm_employee_salary_increments")
 }
 
 // model HrmEmployeeDrfSetting {
@@ -3504,8 +3639,11 @@ model HrmPayBand {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  structures   HrmPayBandStructure[]
-  hrmEmployees HrmEmployee[]
+  structures                      HrmPayBandStructure[]
+  hrmEmployees                    HrmEmployee[]
+  hrmEmployeeSalaryStructures     HrmEmployeeSalaryStructure[]
+  hrmEmployeeSalaryStructureItems HrmEmployeeSalaryStructureItem[]
+  hrmEmployeeSalaryIncrements     HrmEmployeeSalaryIncrement[]
 
   @@unique([schoolSlug, payBandName])
   @@index([schoolSlug])
@@ -3611,7 +3749,8 @@ model HrmEarningType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  payBandStructures HrmPayBandStructure[]
+  payBandStructures               HrmPayBandStructure[]
+  hrmEmployeeSalaryStructureItems HrmEmployeeSalaryStructureItem[]
 
   @@unique([schoolSlug, earningType])
   @@index([schoolSlug])
@@ -3639,7 +3778,8 @@ model HrmDeductionType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  payBandStructures HrmPayBandStructure[]
+  payBandStructures               HrmPayBandStructure[]
+  hrmEmployeeSalaryStructureItems HrmEmployeeSalaryStructureItem[]
 
   @@unique([schoolSlug, deductionType])
   @@index([schoolSlug])

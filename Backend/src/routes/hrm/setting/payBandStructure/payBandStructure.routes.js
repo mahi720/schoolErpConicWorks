@@ -9,6 +9,6 @@ import { savePayBandStructureSchema } from "../../../../validations/hrm/settings
 const router = Router();
 
 router.get("/:payBandSlug", getPayBandStructureController);
-router.put("/:payBandSlug", validate(savePayBandStructureSchema), savePayBandStructureController);
+router.patch("/:payBandSlug", validate(savePayBandStructureSchema), savePayBandStructureController);
 
 export default router;

@@ -2,6 +2,13 @@ import { z } from "zod";
 
 const structureItemSchema = z
   .object({
+    slug: z
+      .string()
+      .trim()
+      .max(50)
+      .nullable()
+      .optional(),
+
     componentType: z.enum([
       "EARNING",
       "DEDUCTION",
@@ -51,7 +58,8 @@ const structureItemSchema = z
   .superRefine((data, ctx) => {
     if (data.isBasicPay) {
       if (
-        data.componentType !== "EARNING"
+        data.componentType !==
+        "EARNING"
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -80,7 +88,8 @@ const structureItemSchema = z
       }
 
       if (
-        data.calculationType !== "FIXED"
+        data.calculationType !==
+        "FIXED"
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -94,7 +103,8 @@ const structureItemSchema = z
     }
 
     if (
-      data.componentType === "EARNING" &&
+      data.componentType ===
+      "EARNING" &&
       !data.earningTypeSlug
     ) {
       ctx.addIssue({
@@ -119,7 +129,8 @@ const structureItemSchema = z
     }
 
     if (
-      data.componentType === "EARNING" &&
+      data.componentType ===
+      "EARNING" &&
       data.deductionTypeSlug
     ) {
       ctx.addIssue({
@@ -157,18 +168,24 @@ export const savePayBandStructureSchema =
     .superRefine((data, ctx) => {
       const basicPayItems =
         data.structures.filter(
-          (item) => item.isBasicPay,
+          (item) =>
+            item.isBasicPay,
         );
 
-      if (basicPayItems.length === 0) {
+      if (
+        basicPayItems.length === 0
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["structures"],
-          message: "Basic Pay is required",
+          message:
+            "Basic Pay is required",
         });
       }
 
-      if (basicPayItems.length > 1) {
+      if (
+        basicPayItems.length > 1
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["structures"],

@@ -9,7 +9,7 @@ export const payBandStructureApi = {
   },
 
   save: async (payBandSlug, payload) => {
-    const response = await API.put(`${BASE_URL}/${payBandSlug}`, payload);
+    const response = await API.patch(`${BASE_URL}/${payBandSlug}`, payload);
     return response.data;
   },
 };

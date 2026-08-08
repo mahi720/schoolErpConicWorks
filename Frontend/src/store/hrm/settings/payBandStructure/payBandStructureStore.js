@@ -6,51 +6,100 @@ import { payBandStructureApi } from "../../../../api/hrm/settings/payBandStructu
 export const usePayBandStructureStore = create((set) => ({
   structures: [],
   selectedPayBandSlug: null,
+
   loading: false,
   submitLoading: false,
 
   fetchPayBandStructure: async (payBandSlug) => {
     try {
-      set({ loading: true, selectedPayBandSlug: payBandSlug });
-      const response =
-        await payBandStructureApi.getByPayBandSlug(payBandSlug);
-      set({ structures: response.data || [] });
-      return true;
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to fetch pay band structure",
-      );
-      return false;
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  savePayBandStructure: async (payBandSlug, payload) => {
-    try {
-      set({ submitLoading: true });
-      const response = await payBandStructureApi.save(payBandSlug, payload);
       set({
-        structures: response.data || [],
+        loading: true,
         selectedPayBandSlug: payBandSlug,
+        structures: [],
       });
-      toast.success(
-        response.message || "Pay band structure saved successfully",
+
+      const response =
+        await payBandStructureApi.getByPayBandSlug(
+          payBandSlug,
+        );
+
+      set({
+        structures:
+          response.data || [],
+      });
+
+      return true;
+    } catch (error) {
+      set({
+        structures: [],
+      });
+
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to fetch pay band structure",
       );
+
+      return false;
+    } finally {
+      set({
+        loading: false,
+      });
+    }
+  },
+
+  savePayBandStructure: async (
+    payBandSlug,
+    payload,
+  ) => {
+    try {
+      set({
+        submitLoading: true,
+      });
+
+      const response =
+        await payBandStructureApi.save(
+          payBandSlug,
+          payload,
+        );
+
+      set({
+        structures:
+          response.data || [],
+
+        selectedPayBandSlug:
+          payBandSlug,
+      });
+
+      toast.success(
+        response.message ||
+        "Pay band structure saved successfully",
+      );
+
       return true;
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to save pay band structure",
+        "Failed to save pay band structure",
       );
+
       return false;
     } finally {
-      set({ submitLoading: false });
+      set({
+        submitLoading: false,
+      });
     }
   },
 
-  setStructures: (structures) => set({ structures }),
+  setStructures: (structures) =>
+    set({
+      structures,
+    }),
+
   clearPayBandStructure: () =>
-    set({ structures: [], selectedPayBandSlug: null }),
+    set({
+      structures: [],
+      selectedPayBandSlug: null,
+      loading: false,
+      submitLoading: false,
+    }),
 }));
