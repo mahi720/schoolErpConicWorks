@@ -127,6 +127,10 @@ model School {
   hrmEmployeeSalaryStructures      HrmEmployeeSalaryStructure[]
   hrmEmployeeSalaryStructureItems  HrmEmployeeSalaryStructureItem[]
   hrmEmployeeSalaryIncrements      HrmEmployeeSalaryIncrement[]
+  hrmHolidays                      HrmHoliday[]
+  hrmHolidayGroups                 HrmHolidayGroup[]
+  hrmHolidayAssignments            HrmHolidayAssignment[]
+  hrmEventCalendars                HrmEventCalendar[]
 
   @@map("schools")
 }
@@ -3249,6 +3253,8 @@ model HrmEmployee {
   updatedAt                   DateTime                     @updatedAt
   hrmEmployeeSalaryStructure  HrmEmployeeSalaryStructure?
   hrmEmployeeSalaryIncrements HrmEmployeeSalaryIncrement[]
+  hrmHolidays                 HrmHoliday[]
+  hrmHolidayAssignments       HrmHolidayAssignment[]
 
   @@index([schoolSlug])
   @@index([userSlug])
@@ -3452,32 +3458,147 @@ model HrmEmployeeSalaryIncrement {
   @@map("hrm_employee_salary_increments")
 }
 
-// model HrmEmployeeDrfSetting {
-//   id   Int    @id @default(autoincrement())
-//   slug String @unique @db.VarChar(50)
+// HRM Holiday
 
-//   schoolSlug String @db.VarChar(50)
-//   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+enum HrmHolidayScopeType {
+  DEPARTMENT
+  EMPLOYEE
+}
 
-//   employeeSlug String      @unique @db.VarChar(50)
-//   employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Cascade)
+model HrmHolidayGroup {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
 
-//   isApplicable Boolean @default(false)
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
 
-//   effectiveFrom DateTime?
-//   effectiveTo   DateTime?
+  title String @db.VarChar(150)
 
-//   updatedBySlug String? @db.VarChar(50)
-//   updatedBy     User?   @relation("HrmEmployeeDrfSettingUpdatedBy", fields: [updatedBySlug], references: [slug], onDelete: SetNull)
+  scopeType HrmHolidayScopeType
 
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
 
-//   @@index([schoolSlug])
-//   @@index([employeeSlug])
-//   @@index([isApplicable])
-//   @@map("hrm_employee_drf_settings")
-// }
+  holidays    HrmHoliday[]
+  assignments HrmHolidayAssignment[]
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([scopeType])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([isActive])
+  @@map("hrm_holiday_groups")
+}
+
+model HrmHoliday {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  holidayGroupSlug String
+  holidayGroup     HrmHolidayGroup @relation(fields: [holidayGroupSlug], references: [slug], onDelete: Cascade)
+
+  title       String   @db.VarChar(150)
+  holidayDate DateTime @db.Date
+
+  scopeKey String @db.VarChar(120)
+
+  hrmEmployeeId Int?
+  hrmEmployee   HrmEmployee? @relation(fields: [hrmEmployeeId], references: [id])
+
+  hrmDepartmentId Int?
+  hrmDepartment   HrmDepartment? @relation(fields: [hrmDepartmentId], references: [id])
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolSlug, holidayGroupSlug, holidayDate, scopeKey])
+  @@index([schoolSlug])
+  @@index([holidayGroupSlug])
+  @@index([holidayDate])
+  @@index([scopeKey])
+  @@index([hrmEmployeeId])
+  @@index([hrmDepartmentId])
+  @@index([isActive])
+  @@map("hrm_holidays")
+}
+
+model HrmHolidayAssignment {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  holidayGroupSlug String
+  holidayGroup     HrmHolidayGroup @relation(fields: [holidayGroupSlug], references: [slug], onDelete: Cascade)
+
+  departmentSlug String?
+  department     HrmDepartment? @relation(fields: [departmentSlug], references: [slug], onDelete: Restrict)
+
+  employeeSlug String?
+  employee     HrmEmployee? @relation(fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([holidayGroupSlug, departmentSlug])
+  @@unique([holidayGroupSlug, employeeSlug])
+  @@index([schoolSlug])
+  @@index([holidayGroupSlug])
+  @@index([departmentSlug])
+  @@index([employeeSlug])
+  @@map("hrm_holiday_assignments")
+}
+
+// HRM Event Calendar
+
+model HrmEventCalendar {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  title       String @db.VarChar(150)
+  description String @db.Text
+
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  startTime String @db.VarChar(20)
+  endTime   String @db.VarChar(20)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([isActive])
+  @@map("hrm_event_calendars")
+}
 
 // Hrm settings master
 
@@ -3497,10 +3618,12 @@ model HrmDepartment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  designations  HrmDesignation[]
-  shifts        HrmShift[]
-  basicSettings HrmBasicSetting[]
-  hrmEmployees  HrmEmployee[]
+  designations          HrmDesignation[]
+  shifts                HrmShift[]
+  basicSettings         HrmBasicSetting[]
+  hrmEmployees          HrmEmployee[]
+  hrmHolidays           HrmHoliday[]
+  hrmHolidayAssignments HrmHolidayAssignment[]
 
   @@unique([schoolSlug, departmentName])
   @@index([schoolSlug])

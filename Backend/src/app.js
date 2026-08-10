@@ -36,6 +36,8 @@ import coScholasticGradeSubmissionRoutes from "./routes/examManager/markSubmissi
 import hrmSettingsRouter from "./routes/hrm/setting/hrmSettings.routes.js";
 import employeeRoutes from "./routes/HRM/employee/employee.routes.js";
 import employeeSalaryStructureRoutes from "./routes/HRM/employee/employeeSalaryStructure.routes.js";
+import holidayRoutes from "./routes/HRM/holiday/holiday.routes.js";
+import eventCalendarRoutes from "./routes/HRM/eventCalendar/eventCalendar.routes.js";
 
 
 
@@ -120,6 +122,8 @@ app.use("/api/co-scholastic-grade-submissions", coScholasticGradeSubmissionRoute
 app.use("/api/hrm/settings", hrmSettingsRouter);
 app.use("/api/hrm/employees", employeeRoutes);
 app.use("/api/hrm/salary/employees", employeeSalaryStructureRoutes);
+app.use("/api/hrm/holidays", holidayRoutes);
+app.use("/api/hrm/event-calendars", eventCalendarRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
