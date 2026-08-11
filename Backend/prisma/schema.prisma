@@ -131,6 +131,8 @@ model School {
   hrmHolidayGroups                 HrmHolidayGroup[]
   hrmHolidayAssignments            HrmHolidayAssignment[]
   hrmEventCalendars                HrmEventCalendar[]
+  hrmEmployeeAttendances           HrmEmployeeAttendance[]
+  hrmEmployeeAttendanceLogs        HrmEmployeeAttendanceLog[]
 
   @@map("schools")
 }
@@ -220,7 +222,9 @@ model User {
   lockedCoScholasticGrades    CoScholasticGradeSubmission[] @relation("CoScholasticGradeLockedBy")
   coScholasticGradeAuditLogs  CoScholasticGradeAuditLog[]   @relation("CoScholasticGradeAuditPerformedBy")
   hrmEmployee                 HrmEmployee?
-  // updatedHrmEmployeeDrfSettings HrmEmployeeDrfSetting[]       @relation("HrmEmployeeDrfSettingUpdatedBy")
+  markHrmAttendacne           HrmEmployeeAttendance[]       @relation("HrmAttendanceMarkedBy")
+  lockHrmAttendance           HrmEmployeeAttendance[]       @relation("HrmAttendanceLockedBy")
+  hrmEmployeeAttendanceLogs   HrmEmployeeAttendanceLog[]
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -3255,6 +3259,8 @@ model HrmEmployee {
   hrmEmployeeSalaryIncrements HrmEmployeeSalaryIncrement[]
   hrmHolidays                 HrmHoliday[]
   hrmHolidayAssignments       HrmHolidayAssignment[]
+  hrmEmployeeAttendances      HrmEmployeeAttendance[]
+  hrmEmployeeAttendanceLogs   HrmEmployeeAttendanceLog[]
 
   @@index([schoolSlug])
   @@index([userSlug])
@@ -3456,6 +3462,168 @@ model HrmEmployeeSalaryIncrement {
   @@index([employeeSalaryStructureSlug])
   @@index([createdAt])
   @@map("hrm_employee_salary_increments")
+}
+
+// Hrm attandance
+
+enum HrmEmployeeAttendanceStatus {
+  NOT_MARKED
+  PRESENT
+  ABSENT
+  LEAVE
+  HOLIDAY
+}
+
+enum HrmEmployeeAttendanceSource {
+  MANUAL
+  BASIC_SETTING_HOLIDAY
+  HRM_HOLIDAY
+  LEAVE
+  IMPORT
+}
+
+enum HrmEmployeeAttendanceAction {
+  MARK_PRESENT
+  MARK_ABSENT
+  UPDATE
+  IMPORT
+  LOCK
+  UNLOCK
+  AUTO_HOLIDAY
+  AUTO_LEAVE
+}
+
+model HrmEmployeeAttendance {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  attendanceDate DateTime @db.Date
+
+  attendanceStatus HrmEmployeeAttendanceStatus @default(NOT_MARKED)
+  source           HrmEmployeeAttendanceSource @default(MANUAL)
+
+  inTime  String? @db.VarChar(10)
+  outTime String? @db.VarChar(10)
+
+  isLate  Boolean @default(false)
+  isEarly Boolean @default(false)
+
+  lateMinutes  Int?
+  earlyMinutes Int?
+
+  shiftSlug String?   @db.VarChar(50)
+  shift     HrmShift? @relation(fields: [shiftSlug], references: [slug], onDelete: SetNull)
+
+  expectedInTime  String? @db.VarChar(10)
+  expectedOutTime String? @db.VarChar(10)
+
+  loginBufferMinutes  Int?
+  logoutBufferMinutes Int?
+
+  holidaySlug String? @db.VarChar(50)
+
+  basicSettingSlug String? @db.VarChar(50)
+
+  leaveApplicationSlug String? @db.VarChar(50)
+  leaveTypeSlug        String? @db.VarChar(50)
+  leaveTypeName        String? @db.VarChar(100)
+
+  remarks String? @db.VarChar(255)
+
+  isLocked Boolean   @default(false)
+  lockedAt DateTime?
+
+  lockedBySlug String? @db.VarChar(50)
+  lockedBy     User?   @relation("HrmAttendanceLockedBy", fields: [lockedBySlug], references: [slug], onDelete: SetNull)
+
+  markedBySlug String? @db.VarChar(50)
+  markedBy     User?   @relation("HrmAttendanceMarkedBy", fields: [markedBySlug], references: [slug], onDelete: SetNull)
+
+  markedAt DateTime?
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs HrmEmployeeAttendanceLog[]
+
+  @@unique([schoolSlug, employeeSlug, attendanceDate])
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([attendanceDate])
+  @@index([attendanceStatus])
+  @@index([shiftSlug])
+  @@index([leaveApplicationSlug])
+  @@index([holidaySlug])
+  @@index([isLocked])
+  @@map("hrm_employee_attendances")
+}
+
+model HrmEmployeeAttendanceLog {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  attendanceSlug String
+  attendance     HrmEmployeeAttendance @relation(fields: [attendanceSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  attendanceDate DateTime @db.Date
+
+  action HrmEmployeeAttendanceAction
+
+  previousStatus HrmEmployeeAttendanceStatus?
+  newStatus      HrmEmployeeAttendanceStatus?
+
+  previousInTime String? @db.VarChar(10)
+  newInTime      String? @db.VarChar(10)
+
+  previousOutTime String? @db.VarChar(10)
+  newOutTime      String? @db.VarChar(10)
+
+  previousIsLate Boolean?
+  newIsLate      Boolean?
+
+  previousIsEarly Boolean?
+  newIsEarly      Boolean?
+
+  previousLocked Boolean?
+  newLocked      Boolean?
+
+  actorSlug String? @db.VarChar(50)
+  actor     User?   @relation(fields: [actorSlug], references: [slug], onDelete: SetNull)
+
+  actorName String? @db.VarChar(150)
+  actorRole String? @db.VarChar(50)
+
+  ipAddress String? @db.VarChar(100)
+  userAgent String? @db.Text
+
+  remarks String? @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolSlug])
+  @@index([attendanceSlug])
+  @@index([employeeSlug])
+  @@index([attendanceDate])
+  @@index([action])
+  @@index([actorSlug])
+  @@index([createdAt])
+  @@map("hrm_employee_attendance_logs")
 }
 
 // HRM Holiday
@@ -3687,7 +3855,8 @@ model HrmShift {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  basicSettings HrmBasicSetting[]
+  basicSettings          HrmBasicSetting[]
+  hrmEmployeeAttendances HrmEmployeeAttendance[]
 
   @@unique([schoolSlug, departmentSlug, shiftName])
   @@unique([schoolSlug, departmentSlug, shiftCode])

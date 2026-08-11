@@ -118,6 +118,10 @@ import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "./routes/ProtectedRoute/ProtectedRoute";
 import AuthInitializer from "./components/authInitializer/AuthInitializer";
 // import OnlineAdmissionModal from "./components/academics/studentAdmissionApplication/OnlineAdmissionModal";
+import YearlyAttendanceReport from "./pages/HRM/AttendanceManagement/YearlyAttendanceReport";
+import ReconciliationSheet from "./pages/HRM/AttendanceManagement/ReconciliationSheetAttendance";
+import ReconciliationReportSheet from "./pages/HRM/AttendanceManagement/ReconciliationReportSheetAttendance";
+import NoPunchReport from "./pages/HRM/AttendanceManagement/NoPunchReportAttendance";
 
 function App() {
   return (
@@ -294,6 +298,26 @@ function App() {
                           path="/hrm/attendance-management"
                           element={<AttendanceManagement />}
                         />
+                        <Route
+                          path="/hrm/attendance-management/yearly-attendance-report"
+                          element={<YearlyAttendanceReport />}
+                        />
+
+                        <Route
+                          path="/hrm/attendance-management/reconciliation-sheet"
+                          element={<ReconciliationSheet />}
+                        />
+
+                        <Route
+                          path="/hrm/attendance-management/reconciliation-report-sheet"
+                          element={<ReconciliationReportSheet />}
+                        />
+
+                        <Route
+                          path="/hrm/attendance-management/no-punch-report"
+                          element={<NoPunchReport />}
+                        />
+
                         <Route
                           path="/hrm/salary-management"
                           element={<EmployeesSalary />}

@@ -38,6 +38,7 @@ import employeeRoutes from "./routes/HRM/employee/employee.routes.js";
 import employeeSalaryStructureRoutes from "./routes/HRM/employee/employeeSalaryStructure.routes.js";
 import holidayRoutes from "./routes/HRM/holiday/holiday.routes.js";
 import eventCalendarRoutes from "./routes/HRM/eventCalendar/eventCalendar.routes.js";
+import employeeAttendanceRoutes from "./routes/HRM/attendance/employeeAttendance.routes.js";
 
 
 
@@ -124,6 +125,7 @@ app.use("/api/hrm/employees", employeeRoutes);
 app.use("/api/hrm/salary/employees", employeeSalaryStructureRoutes);
 app.use("/api/hrm/holidays", holidayRoutes);
 app.use("/api/hrm/event-calendars", eventCalendarRoutes);
+app.use("/api/hrm/employee-attendances", employeeAttendanceRoutes);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
