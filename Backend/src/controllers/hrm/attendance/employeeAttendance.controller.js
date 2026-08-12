@@ -15,6 +15,11 @@ import {
     getYearlyAttendanceReportService,
     bulkSaveEmployeeAttendanceService,
     importEmployeeAttendanceService,
+    getMonthlyAttendanceReportService,
+
+    getEmployeeMonthlyReconciliationService,
+    lockReconciliationAttendanceService,
+    getNoPunchReportService,
 } from "../../../services/HRM/attendance/employeeAttendance.service.js";
 
 const getRequestMetadata =
@@ -382,6 +387,109 @@ export const getYearlyAttendanceReportController =
         }
     };
 
+export const getMonthlyAttendanceReportController =
+    async (req, res) => {
+        try {
+            const data =
+                await getMonthlyAttendanceReportService({
+                    schoolSlug:
+                        req.user.schoolSlug,
+
+                    year:
+                        req.query.year,
+
+                    month:
+                        req.query.month,
+                });
+
+            return successResponse(
+                res,
+                200,
+                "Monthly attendance report fetched successfully",
+                data,
+            );
+        } catch (error) {
+            return errorResponse(
+                res,
+                400,
+                error.message,
+            );
+        }
+    };
+
+export const getEmployeeMonthlyReconciliationController =
+    async (
+        req,
+        res,
+    ) => {
+        try {
+            const data =
+                await getEmployeeMonthlyReconciliationService({
+                    schoolSlug:
+                        req.user.schoolSlug,
+
+                    employeeSlug:
+                        req.params.employeeSlug,
+
+                    year:
+                        req.query.year,
+
+                    month:
+                        req.query.month,
+                });
+
+            return successResponse(
+                res,
+                200,
+                "Employee reconciliation fetched successfully",
+                data,
+            );
+        } catch (error) {
+            return errorResponse(
+                res,
+                400,
+                error.message,
+            );
+        }
+    };
+
+export const lockReconciliationAttendanceController =
+    async (
+        req,
+        res,
+    ) => {
+        try {
+            await lockReconciliationAttendanceService({
+                schoolSlug:
+                    req.user.schoolSlug,
+
+                attendanceSlug:
+                    req.params.attendanceSlug,
+
+                user:
+                    req.user,
+
+                metadata:
+                    getRequestMetadata(
+                        req,
+                    ),
+            });
+
+            return successResponse(
+                res,
+                200,
+                "Attendance locked successfully",
+                null,
+            );
+        } catch (error) {
+            return errorResponse(
+                res,
+                400,
+                error.message,
+            );
+        }
+    };
+
 export const bulkSaveEmployeeAttendanceController =
     async (req, res) => {
         try {
@@ -463,6 +571,36 @@ export const importEmployeeAttendanceController =
                 error.message,
                 error.details ||
                 null,
+            );
+        }
+    };
+
+export const getNoPunchReportController =
+    async (req, res) => {
+        try {
+            const data =
+                await getNoPunchReportService({
+                    schoolSlug:
+                        req.user.schoolSlug,
+
+                    month:
+                        req.query.month,
+
+                    year:
+                        req.query.year,
+                });
+
+            return successResponse(
+                res,
+                200,
+                "No punch report fetched successfully",
+                data,
+            );
+        } catch (error) {
+            return errorResponse(
+                res,
+                400,
+                error.message,
             );
         }
     };

@@ -33,6 +33,10 @@ import {
     getYearlyAttendanceReportController,
     bulkSaveEmployeeAttendanceController,
     importEmployeeAttendanceController,
+    getMonthlyAttendanceReportController,
+    lockReconciliationAttendanceController,
+    getEmployeeMonthlyReconciliationController,
+    getNoPunchReportController,
 } from "../../../controllers/HRM/attendance/employeeAttendance.controller.js";
 
 const router =
@@ -43,55 +47,8 @@ router.use(
 );
 
 router.get(
-    "/",
-    getEmployeeAttendancesController,
-);
-
-router.get(
-    "/dashboard",
-    getAttendanceDashboardController,
-);
-
-router.post(
-    "/bulk-save",
-    validate(
-        bulkSaveEmployeeAttendanceSchema,
-    ),
-    bulkSaveEmployeeAttendanceController,
-);
-
-router.post(
-    "/import",
-    employeeExcelUpload.single(
-        "file",
-    ),
-    importEmployeeAttendanceController,
-);
-
-router.get(
-    "/logs",
-    getEmployeeAttendanceLogsController,
-);
-
-router.get(
-    "/yearly-report",
-    getYearlyAttendanceReportController,
-);
-
-router.patch(
-    "/lock",
-    validate(
-        lockEmployeeAttendanceSchema,
-    ),
-    lockEmployeeAttendanceController,
-);
-
-router.patch(
-    "/unlock",
-    validate(
-        unlockEmployeeAttendanceSchema,
-    ),
-    unlockEmployeeAttendanceController,
+    "/employees/:employeeSlug/monthly-reconciliation",
+    getEmployeeMonthlyReconciliationController,
 );
 
 router.patch(
@@ -116,6 +73,73 @@ router.patch(
         updateEmployeeAttendanceSchema,
     ),
     updateEmployeeAttendanceController,
+);
+
+router.patch(
+    "/:attendanceSlug/reconciliation-lock",
+    lockReconciliationAttendanceController,
+);
+
+router.get(
+    "/",
+    getEmployeeAttendancesController,
+);
+
+router.get(
+    "/dashboard",
+    getAttendanceDashboardController,
+);
+
+router.post(
+    "/bulk-save",
+    validate(
+        bulkSaveEmployeeAttendanceSchema,
+    ),
+    bulkSaveEmployeeAttendanceController,
+);
+
+router.get(
+    "/no-punch-report",
+    getNoPunchReportController,
+);
+
+router.post(
+    "/import",
+    employeeExcelUpload.single(
+        "file",
+    ),
+    importEmployeeAttendanceController,
+);
+
+router.get(
+    "/logs",
+    getEmployeeAttendanceLogsController,
+);
+
+router.get(
+    "/yearly-report",
+    getYearlyAttendanceReportController,
+);
+
+router.get(
+    "/monthly-report",
+    getMonthlyAttendanceReportController,
+);
+
+router.patch(
+    "/lock",
+    validate(
+        lockEmployeeAttendanceSchema,
+    ),
+    lockEmployeeAttendanceController,
+);
+
+router.patch(
+    "/unlock",
+    validate(
+        unlockEmployeeAttendanceSchema,
+    ),
+    unlockEmployeeAttendanceController,
 );
 
 export default router;

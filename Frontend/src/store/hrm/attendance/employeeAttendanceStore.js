@@ -1,668 +1,625 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 
-import {
-    employeeAttendanceApi,
-} from "../../../api/hrm/attendance/employeeAttendanceApi";
+import { employeeAttendanceApi } from "../../../api/hrm/attendance/employeeAttendanceApi";
 
-export const useEmployeeAttendanceStore =
-    create((set) => ({
-        attendanceData:
-            null,
+export const useEmployeeAttendanceStore = create((set) => ({
+    attendanceData: null,
 
-        employees:
-            [],
+    employees: [],
 
-        summary:
-        {
-            total: 0,
-            present: 0,
-            absent: 0,
-            leave: 0,
-            holiday: 0,
-            notMarked: 0,
-        },
+    summary: {
+        total: 0,
+        present: 0,
+        absent: 0,
+        leave: 0,
+        holiday: 0,
+        notMarked: 0,
+    },
 
-        dashboard:
-            null,
+    dashboard: null,
 
-        logs:
-            [],
+    logs: [],
 
-        yearlyReport:
-            null,
+    yearlyReport: null,
 
-        selectedAttendance:
-            null,
+    selectedAttendance: null,
 
-        loading:
-            false,
+    loading: false,
 
-        dashboardLoading:
-            false,
+    dashboardLoading: false,
 
-        submitLoading:
-            false,
+    submitLoading: false,
 
-        lockLoading:
-            false,
+    lockLoading: false,
 
-        logLoading:
-            false,
+    logLoading: false,
 
-        reportLoading:
-            false,
+    reportLoading: false,
 
-        actionLoadingSlug:
-            null,
+    actionLoadingSlug: null,
 
-        saveLoading: false,
+    saveLoading: false,
 
-        importLoading: false,
-        importResult: null,
+    importLoading: false,
+    importResult: null,
+    monthlyReport: null,
+    monthlyReportLoading: false,
+    reconciliationDetail: null,
+    reconciliationLoading: false,
+    reconciliationLockLoading: false,
+    noPunchReport: null,
+    noPunchLoading: false,
 
-        fetchAttendances:
-            async (
-                params = {},
-            ) => {
-                try {
-                    set({
-                        loading:
-                            true,
-                    });
+    fetchAttendances: async (params = {}) => {
+        try {
+            set({
+                loading: true,
+            });
 
-                    const response =
-                        await employeeAttendanceApi.getAll(
-                            params,
-                        );
+            const response = await employeeAttendanceApi.getAll(params);
 
-                    const data =
-                        response.data ||
-                        null;
+            const data = response.data || null;
 
-                    set({
-                        attendanceData:
-                            data,
+            set({
+                attendanceData: data,
 
-                        employees:
-                            data
-                                ?.employees ||
-                            [],
+                employees: data?.employees || [],
 
-                        summary:
-                            data
-                                ?.summary ||
-                            {
-                                total: 0,
-                                present: 0,
-                                absent: 0,
-                                leave: 0,
-                                holiday: 0,
-                                notMarked: 0,
-                            },
-                    });
+                summary: data?.summary || {
+                    total: 0,
+                    present: 0,
+                    absent: 0,
+                    leave: 0,
+                    holiday: 0,
+                    notMarked: 0,
+                },
+            });
 
-                    return true;
-                } catch (error) {
-                    set({
-                        attendanceData:
-                            null,
+            return true;
+        } catch (error) {
+            set({
+                attendanceData: null,
 
-                        employees:
-                            [],
+                employees: [],
 
-                        summary:
-                        {
-                            total: 0,
-                            present: 0,
-                            absent: 0,
-                            leave: 0,
-                            holiday: 0,
-                            notMarked: 0,
-                        },
-                    });
+                summary: {
+                    total: 0,
+                    present: 0,
+                    absent: 0,
+                    leave: 0,
+                    holiday: 0,
+                    notMarked: 0,
+                },
+            });
 
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to fetch employee attendance",
-                    );
+            toast.error(
+                error?.response?.data?.message || "Failed to fetch employee attendance",
+            );
 
-                    return false;
-                } finally {
-                    set({
-                        loading:
-                            false,
-                    });
-                }
-            },
+            return false;
+        } finally {
+            set({
+                loading: false,
+            });
+        }
+    },
 
-        fetchDashboard:
-            async (
-                params = {},
-            ) => {
-                try {
-                    set({
-                        dashboardLoading:
-                            true,
-                    });
+    fetchDashboard: async (params = {}) => {
+        try {
+            set({
+                dashboardLoading: true,
+            });
 
-                    const response =
-                        await employeeAttendanceApi.getDashboard(
-                            params,
-                        );
+            const response = await employeeAttendanceApi.getDashboard(params);
 
-                    set({
-                        dashboard:
-                            response.data ||
-                            null,
-                    });
+            set({
+                dashboard: response.data || null,
+            });
 
-                    return true;
-                } catch (error) {
-                    set({
-                        dashboard:
-                            null,
-                    });
+            return true;
+        } catch (error) {
+            set({
+                dashboard: null,
+            });
 
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to fetch attendance dashboard",
-                    );
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to fetch attendance dashboard",
+            );
 
-                    return false;
-                } finally {
-                    set({
-                        dashboardLoading:
-                            false,
-                    });
-                }
-            },
+            return false;
+        } finally {
+            set({
+                dashboardLoading: false,
+            });
+        }
+    },
 
-        markPresent:
-            async (
+    markPresent: async (employeeSlug, payload) => {
+        try {
+            set({
+                submitLoading: true,
+
+                actionLoadingSlug: employeeSlug,
+            });
+
+            const response = await employeeAttendanceApi.markPresent(
                 employeeSlug,
                 payload,
-            ) => {
-                try {
-                    set({
-                        submitLoading:
-                            true,
+            );
 
-                        actionLoadingSlug:
-                            employeeSlug,
-                    });
+            toast.success(response.message || "Employee marked present successfully");
 
-                    const response =
-                        await employeeAttendanceApi.markPresent(
-                            employeeSlug,
-                            payload,
-                        );
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message || "Failed to mark employee present",
+            );
 
-                    toast.success(
-                        response.message ||
-                        "Employee marked present successfully",
-                    );
+            return false;
+        } finally {
+            set({
+                submitLoading: false,
 
-                    return true;
-                } catch (error) {
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to mark employee present",
-                    );
+                actionLoadingSlug: null,
+            });
+        }
+    },
 
-                    return false;
-                } finally {
-                    set({
-                        submitLoading:
-                            false,
+    markAbsent: async (employeeSlug, payload) => {
+        try {
+            set({
+                submitLoading: true,
 
-                        actionLoadingSlug:
-                            null,
-                    });
-                }
-            },
+                actionLoadingSlug: employeeSlug,
+            });
 
-        markAbsent:
-            async (
+            const response = await employeeAttendanceApi.markAbsent(
                 employeeSlug,
                 payload,
-            ) => {
-                try {
-                    set({
-                        submitLoading:
-                            true,
+            );
 
-                        actionLoadingSlug:
-                            employeeSlug,
-                    });
+            toast.success(response.message || "Employee marked absent successfully");
 
-                    const response =
-                        await employeeAttendanceApi.markAbsent(
-                            employeeSlug,
-                            payload,
-                        );
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message || "Failed to mark employee absent",
+            );
 
-                    toast.success(
-                        response.message ||
-                        "Employee marked absent successfully",
-                    );
+            return false;
+        } finally {
+            set({
+                submitLoading: false,
 
-                    return true;
-                } catch (error) {
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to mark employee absent",
-                    );
+                actionLoadingSlug: null,
+            });
+        }
+    },
 
-                    return false;
-                } finally {
-                    set({
-                        submitLoading:
-                            false,
+    updateAttendance: async (attendanceSlug, payload) => {
+        try {
+            set({
+                submitLoading: true,
 
-                        actionLoadingSlug:
-                            null,
-                    });
-                }
-            },
+                actionLoadingSlug: attendanceSlug,
+            });
 
-        updateAttendance:
-            async (
+            const response = await employeeAttendanceApi.update(
                 attendanceSlug,
                 payload,
-            ) => {
-                try {
-                    set({
-                        submitLoading:
-                            true,
+            );
 
-                        actionLoadingSlug:
-                            attendanceSlug,
-                    });
+            toast.success(response.message || "Attendance updated successfully");
 
-                    const response =
-                        await employeeAttendanceApi.update(
-                            attendanceSlug,
-                            payload,
-                        );
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message || "Failed to update attendance",
+            );
 
-                    toast.success(
-                        response.message ||
-                        "Attendance updated successfully",
-                    );
+            return false;
+        } finally {
+            set({
+                submitLoading: false,
 
-                    return true;
-                } catch (error) {
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to update attendance",
-                    );
+                actionLoadingSlug: null,
+            });
+        }
+    },
 
-                    return false;
-                } finally {
-                    set({
-                        submitLoading:
-                            false,
+    lockAttendance: async (payload) => {
+        try {
+            set({
+                lockLoading: true,
+            });
 
-                        actionLoadingSlug:
-                            null,
-                    });
-                }
-            },
+            const response = await employeeAttendanceApi.lock(payload);
 
-        lockAttendance:
-            async (
-                payload,
-            ) => {
-                try {
-                    set({
-                        lockLoading:
-                            true,
-                    });
+            toast.success(response.message || "Attendance locked successfully");
 
-                    const response =
-                        await employeeAttendanceApi.lock(
-                            payload,
-                        );
+            return {
+                success: true,
 
-                    toast.success(
-                        response.message ||
-                        "Attendance locked successfully",
-                    );
+                data: response.data || null,
+            };
+        } catch (error) {
+            const responseData = error?.response?.data;
 
-                    return {
-                        success:
-                            true,
+            toast.error(responseData?.message || "Failed to lock attendance");
 
-                        data:
-                            response.data ||
-                            null,
-                    };
-                } catch (error) {
-                    const responseData =
-                        error
-                            ?.response
-                            ?.data;
+            return {
+                success: false,
 
-                    toast.error(
-                        responseData
-                            ?.message ||
-                        "Failed to lock attendance",
-                    );
+                data: responseData || null,
+            };
+        } finally {
+            set({
+                lockLoading: false,
+            });
+        }
+    },
 
-                    return {
-                        success:
-                            false,
+    unlockAttendance: async (payload) => {
+        try {
+            set({
+                lockLoading: true,
+            });
 
-                        data:
-                            responseData ||
-                            null,
-                    };
-                } finally {
-                    set({
-                        lockLoading:
-                            false,
-                    });
-                }
-            },
+            const response = await employeeAttendanceApi.unlock(payload);
 
-        unlockAttendance:
-            async (
-                payload,
-            ) => {
-                try {
-                    set({
-                        lockLoading:
-                            true,
-                    });
+            toast.success(response.message || "Attendance unlocked successfully");
 
-                    const response =
-                        await employeeAttendanceApi.unlock(
-                            payload,
-                        );
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message || "Failed to unlock attendance",
+            );
 
-                    toast.success(
-                        response.message ||
-                        "Attendance unlocked successfully",
-                    );
+            return false;
+        } finally {
+            set({
+                lockLoading: false,
+            });
+        }
+    },
 
-                    return true;
-                } catch (error) {
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to unlock attendance",
-                    );
+    fetchLogs: async (params = {}) => {
+        try {
+            set({
+                logLoading: true,
+            });
 
-                    return false;
-                } finally {
-                    set({
-                        lockLoading:
-                            false,
-                    });
-                }
-            },
+            const response = await employeeAttendanceApi.getLogs(params);
 
-        fetchLogs:
-            async (
-                params = {},
-            ) => {
-                try {
-                    set({
-                        logLoading:
-                            true,
-                    });
+            set({
+                logs: response.data || [],
+            });
 
-                    const response =
-                        await employeeAttendanceApi.getLogs(
-                            params,
-                        );
+            return true;
+        } catch (error) {
+            set({
+                logs: [],
+            });
 
-                    set({
-                        logs:
-                            response.data ||
-                            [],
-                    });
+            toast.error(
+                error?.response?.data?.message || "Failed to fetch attendance logs",
+            );
 
-                    return true;
-                } catch (error) {
-                    set({
-                        logs:
-                            [],
-                    });
+            return false;
+        } finally {
+            set({
+                logLoading: false,
+            });
+        }
+    },
 
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to fetch attendance logs",
-                    );
+    fetchYearlyReport: async (params = {}) => {
+        try {
+            set({
+                reportLoading: true,
+            });
 
-                    return false;
-                } finally {
-                    set({
-                        logLoading:
-                            false,
-                    });
-                }
-            },
+            const response = await employeeAttendanceApi.getYearlyReport(params);
 
-        fetchYearlyReport:
-            async (
-                params = {},
-            ) => {
-                try {
-                    set({
-                        reportLoading:
-                            true,
-                    });
+            set({
+                yearlyReport: response.data || null,
+            });
 
-                    const response =
-                        await employeeAttendanceApi.getYearlyReport(
-                            params,
-                        );
+            return true;
+        } catch (error) {
+            set({
+                yearlyReport: null,
+            });
 
-                    set({
-                        yearlyReport:
-                            response.data ||
-                            null,
-                    });
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to fetch yearly attendance report",
+            );
 
-                    return true;
-                } catch (error) {
-                    set({
-                        yearlyReport:
-                            null,
-                    });
+            return false;
+        } finally {
+            set({
+                reportLoading: false,
+            });
+        }
+    },
 
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to fetch yearly attendance report",
-                    );
+    fetchMonthlyReport: async (params = {}) => {
+        try {
+            set({
+                monthlyReportLoading: true,
+            });
 
-                    return false;
-                } finally {
-                    set({
-                        reportLoading:
-                            false,
-                    });
-                }
-            },
-
-        setSelectedAttendance:
-            (
-                attendance,
-            ) => {
-                set({
-                    selectedAttendance:
-                        attendance,
-                });
-            },
-
-        saveBulkAttendance:
-            async (
-                payload,
-            ) => {
-                try {
-                    set({
-                        saveLoading:
-                            true,
-                    });
-
-                    const response =
-                        await employeeAttendanceApi.bulkSave(
-                            payload,
-                        );
-
-                    toast.success(
-                        response.message ||
-                        "Attendance saved successfully",
-                    );
-
-                    return true;
-                } catch (error) {
-                    toast.error(
-                        error
-                            ?.response
-                            ?.data
-                            ?.message ||
-                        "Failed to save attendance",
-                    );
-
-                    return false;
-                } finally {
-                    set({
-                        saveLoading:
-                            false,
-                    });
-                }
-            },
-
-        clearSelectedAttendance:
-            () => {
-                set({
-                    selectedAttendance:
-                        null,
-                });
-            },
-
-        clearAttendance:
-            () => {
-                set({
-                    attendanceData:
-                        null,
-
-                    employees:
-                        [],
-
-                    summary:
-                    {
-                        total: 0,
-                        present: 0,
-                        absent: 0,
-                        leave: 0,
-                        holiday: 0,
-                        notMarked: 0,
-                    },
-
-                    selectedAttendance:
-                        null,
-                });
-            },
-
-
-        importAttendance: async (file) => {
-            try {
-                set({
-                    importLoading: true,
-                    importResult: null,
-                });
-
-                const response =
-                    await employeeAttendanceApi.importExcel(
-                        file,
-                    );
-
-                const data =
-                    response.data || null;
-
-                set({
-                    importResult: data,
-                });
-
-                if (
-                    data?.failedCount > 0
-                ) {
-                    toast.success(
-                        `${data.successCount || 0} imported, ${data.failedCount || 0} failed`,
-                    );
-                } else {
-                    toast.success(
-                        response.message ||
-                        "Attendance imported successfully",
-                    );
-                }
-
-                return {
-                    success: true,
-                    data,
-                };
-            } catch (error) {
-                toast.error(
-                    error.response?.data?.message ||
-                    "Failed to import attendance",
+            const response =
+                await employeeAttendanceApi.getMonthlyReport(
+                    params,
                 );
 
-                return {
-                    success: false,
-                    data: null,
-                };
-            } finally {
-                set({
-                    importLoading: false,
-                });
-            }
-        },
-
-        clearImportResult: () => {
             set({
+                monthlyReport:
+                    response.data ||
+                    null,
+            });
+
+            return true;
+        } catch (error) {
+            set({
+                monthlyReport: null,
+            });
+
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to fetch monthly attendance report",
+            );
+
+            return false;
+        } finally {
+            set({
+                monthlyReportLoading: false,
+            });
+        }
+    },
+
+    clearMonthlyReport: () => {
+        set({
+            monthlyReport: null,
+        });
+    },
+
+    fetchEmployeeMonthlyReconciliation: async (
+        employeeSlug,
+        params = {},
+    ) => {
+        try {
+            set({
+                reconciliationLoading:
+                    true,
+            });
+
+            const response =
+                await employeeAttendanceApi.getEmployeeMonthlyReconciliation(
+                    employeeSlug,
+                    params,
+                );
+
+            set({
+                reconciliationDetail:
+                    response.data ||
+                    null,
+            });
+
+            return true;
+        } catch (error) {
+            set({
+                reconciliationDetail:
+                    null,
+            });
+
+            toast.error(
+                error?.response
+                    ?.data
+                    ?.message ||
+                "Failed to fetch reconciliation report",
+            );
+
+            return false;
+        } finally {
+            set({
+                reconciliationLoading:
+                    false,
+            });
+        }
+    },
+
+    lockReconciliationAttendance: async (
+        attendanceSlug,
+    ) => {
+        try {
+            set({
+                reconciliationLockLoading:
+                    true,
+            });
+
+            const response =
+                await employeeAttendanceApi.lockReconciliationAttendance(
+                    attendanceSlug,
+                );
+
+            toast.success(
+                response.message ||
+                "Attendance locked successfully",
+            );
+
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response
+                    ?.data
+                    ?.message ||
+                "Failed to lock attendance",
+            );
+
+            return false;
+        } finally {
+            set({
+                reconciliationLockLoading:
+                    false,
+            });
+        }
+    },
+
+    setSelectedAttendance: (attendance) => {
+        set({
+            selectedAttendance: attendance,
+        });
+    },
+
+    saveBulkAttendance: async (payload) => {
+        try {
+            set({
+                saveLoading: true,
+            });
+
+            const response = await employeeAttendanceApi.bulkSave(payload);
+
+            toast.success(response.message || "Attendance saved successfully");
+
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message || "Failed to save attendance",
+            );
+
+            return false;
+        } finally {
+            set({
+                saveLoading: false,
+            });
+        }
+    },
+
+    clearSelectedAttendance: () => {
+        set({
+            selectedAttendance: null,
+        });
+    },
+
+    clearAttendance: () => {
+        set({
+            attendanceData: null,
+
+            employees: [],
+
+            summary: {
+                total: 0,
+                present: 0,
+                absent: 0,
+                leave: 0,
+                holiday: 0,
+                notMarked: 0,
+            },
+
+            selectedAttendance: null,
+        });
+    },
+
+    importAttendance: async (file) => {
+        try {
+            set({
+                importLoading: true,
                 importResult: null,
             });
-        },
 
-        clearLogs:
-            () => {
-                set({
-                    logs: [],
-                });
-            },
+            const response = await employeeAttendanceApi.importExcel(file);
 
-        clearYearlyReport:
-            () => {
-                set({
-                    yearlyReport:
-                        null,
-                });
-            },
-    }));
+            const data = response.data || null;
+
+            set({
+                importResult: data,
+            });
+
+            if (data?.failedCount > 0) {
+                toast.success(
+                    `${data.successCount || 0} imported, ${data.failedCount || 0} failed`,
+                );
+            } else {
+                toast.success(response.message || "Attendance imported successfully");
+            }
+
+            return {
+                success: true,
+                data,
+            };
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message || "Failed to import attendance",
+            );
+
+            return {
+                success: false,
+                data: null,
+            };
+        } finally {
+            set({
+                importLoading: false,
+            });
+        }
+    },
+
+    clearImportResult: () => {
+        set({
+            importResult: null,
+        });
+    },
+
+    clearLogs: () => {
+        set({
+            logs: [],
+        });
+    },
+
+    clearYearlyReport: () => {
+        set({
+            yearlyReport: null,
+        });
+    },
+
+    fetchNoPunchReport: async (
+        params = {},
+    ) => {
+        try {
+            set({
+                noPunchLoading: true,
+            });
+
+            const response =
+                await employeeAttendanceApi.getNoPunchReport(
+                    params,
+                );
+
+            set({
+                noPunchReport:
+                    response.data || null,
+            });
+
+            return true;
+        } catch (error) {
+            set({
+                noPunchReport: null,
+            });
+
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to fetch no punch report",
+            );
+
+            return false;
+        } finally {
+            set({
+                noPunchLoading: false,
+            });
+        }
+    },
+}));

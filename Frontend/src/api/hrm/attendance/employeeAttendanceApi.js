@@ -32,6 +32,20 @@ export const employeeAttendanceApi = {
         return response.data;
     },
 
+    getNoPunchReport: async (
+        params = {},
+    ) => {
+        const response =
+            await API.get(
+                `${EMPLOYEE_ATTENDANCE_URL}/no-punch-report`,
+                {
+                    params,
+                },
+            );
+
+        return response.data;
+    },
+
     markPresent: async (
         employeeSlug,
         payload,
@@ -121,6 +135,125 @@ export const employeeAttendanceApi = {
             );
 
         return response.data;
+    },
+
+    getMonthlyReport: async (params = {}) => {
+        const response = await API.get(
+            `${EMPLOYEE_ATTENDANCE_URL}/monthly-report`,
+            {
+                params,
+            },
+        );
+
+        return response.data;
+    },
+
+    getEmployeeMonthlyReconciliation: async (
+        employeeSlug,
+        params = {},
+    ) => {
+        const response =
+            await API.get(
+                `${EMPLOYEE_ATTENDANCE_URL}/employees/${employeeSlug}/monthly-reconciliation`,
+                {
+                    params,
+                },
+            );
+
+        return response.data;
+    },
+
+    lockReconciliationAttendance: async (
+        attendanceSlug,
+    ) => {
+        const response =
+            await API.patch(
+                `${EMPLOYEE_ATTENDANCE_URL}/${attendanceSlug}/reconciliation-lock`,
+            );
+
+        return response.data;
+    },
+
+    fetchEmployeeMonthlyReconciliation: async (
+        employeeSlug,
+        params = {},
+    ) => {
+        try {
+            set({
+                reconciliationLoading:
+                    true,
+            });
+
+            const response =
+                await employeeAttendanceApi.getEmployeeMonthlyReconciliation(
+                    employeeSlug,
+                    params,
+                );
+
+            set({
+                reconciliationDetail:
+                    response.data ||
+                    null,
+            });
+
+            return true;
+        } catch (error) {
+            set({
+                reconciliationDetail:
+                    null,
+            });
+
+            toast.error(
+                error?.response
+                    ?.data
+                    ?.message ||
+                "Failed to fetch reconciliation report",
+            );
+
+            return false;
+        } finally {
+            set({
+                reconciliationLoading:
+                    false,
+            });
+        }
+    },
+
+    lockReconciliationAttendance: async (
+        attendanceSlug,
+    ) => {
+        try {
+            set({
+                reconciliationLockLoading:
+                    true,
+            });
+
+            const response =
+                await employeeAttendanceApi.lockReconciliationAttendance(
+                    attendanceSlug,
+                );
+
+            toast.success(
+                response.message ||
+                "Attendance locked successfully",
+            );
+
+            return true;
+        } catch (error) {
+            toast.error(
+                error?.response
+                    ?.data
+                    ?.message ||
+                "Failed to lock attendance",
+            );
+
+            return false;
+        } finally {
+            set({
+                reconciliationLockLoading:
+                    false,
+            });
+        }
     },
 
     bulkSave: async (
