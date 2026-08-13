@@ -122,6 +122,11 @@ import YearlyAttendanceReport from "./pages/HRM/AttendanceManagement/YearlyAtten
 import ReconciliationSheet from "./pages/HRM/AttendanceManagement/ReconciliationSheetAttendance";
 import ReconciliationReportSheet from "./pages/HRM/AttendanceManagement/ReconciliationReportSheetAttendance";
 import NoPunchReport from "./pages/HRM/AttendanceManagement/NoPunchReportAttendance";
+import EmployeeDashboard from "./pages/HRM/Dashboard/EmployeeDashboard/EmployeeDashboard";
+import OvertimeRequests from "./pages/HRM/Dashboard/Requests/overTimeRequest/overtimeRequests";
+import LoanRequests from "./pages/HRM/Dashboard/Requests/loanRequest/loanRequest";
+import AdvanceRequests from "./pages/HRM/Dashboard/Requests/advanceRequest/advanceRequest";
+import LeaveRequests from "./pages/HRM/Dashboard/Requests/leaveRequest/leaveRequest";
 
 function App() {
   return (
@@ -284,7 +289,26 @@ function App() {
                         <Route path="/exam/reports" element={<Reports />} /> */}
 
                         {/* HRM Routes */}
-                        <Route path="/hrm/dashboard" element={<Dashboard />} />
+                        <Route
+                          path="/hrm/employe-dashboard"
+                          element={<EmployeeDashboard />}
+                        />
+                        <Route
+                          path="/hrm/employe-dashboard/overtime-requests"
+                          element={<OvertimeRequests />}
+                        />
+                        <Route
+                          path="/hrm/employe-dashboard/loan-requests"
+                          element={<LoanRequests />}
+                        />
+                        <Route
+                          path="/hrm/employe-dashboard/advance-requests"
+                          element={<AdvanceRequests />}
+                        />
+                        <Route
+                          path="/hrm/employe-dashboard/leave-requests"
+                          element={<LeaveRequests />}
+                        />
                         <Route path="/hrm/employees" element={<Employee />} />
                         <Route
                           path="/hrm/employees/add-employee-form"

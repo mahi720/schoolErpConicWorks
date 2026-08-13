@@ -203,7 +203,7 @@ const menuItems = [
     icon: Briefcase,
     href: "/hrm",
     submenu: [
-      { label: "Dashboard", href: "/hrm/dashboard" },
+      { label: "Dashboard", href: "/hrm/employe-dashboard" },
       { label: "Employees", href: "/hrm/employees" },
       { label: "Attendance", href: "/hrm/attendance-management" },
       { label: "Salary", href: "/hrm/salary-management" },
