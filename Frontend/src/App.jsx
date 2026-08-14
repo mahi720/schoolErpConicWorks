@@ -127,6 +127,7 @@ import OvertimeRequests from "./pages/HRM/Dashboard/Requests/overTimeRequest/ove
 import LoanRequests from "./pages/HRM/Dashboard/Requests/loanRequest/loanRequest";
 import AdvanceRequests from "./pages/HRM/Dashboard/Requests/advanceRequest/advanceRequest";
 import LeaveRequests from "./pages/HRM/Dashboard/Requests/leaveRequest/leaveRequest";
+import CreateMultipleEmployeesLeave from "./pages/HRM/Dashboard/Requests/leaveRequest/multipleLeaveRequest/multipleLeaveRequest";
 
 function App() {
   return (
@@ -308,6 +309,10 @@ function App() {
                         <Route
                           path="/hrm/employe-dashboard/leave-requests"
                           element={<LeaveRequests />}
+                        />
+                        <Route
+                          path="/hrm/employe-dashboard/multiple-leave-requests"
+                          element={<CreateMultipleEmployeesLeave />}
                         />
                         <Route path="/hrm/employees" element={<Employee />} />
                         <Route

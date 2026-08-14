@@ -133,6 +133,9 @@ model School {
   hrmEventCalendars                HrmEventCalendar[]
   hrmEmployeeAttendances           HrmEmployeeAttendance[]
   hrmEmployeeAttendanceLogs        HrmEmployeeAttendanceLog[]
+  hrmEmployeeLeaveRequests         HrmEmployeeLeaveRequest[]
+  hrmEmployeeLeaveRequestLogs      HrmEmployeeLeaveRequestLog[]
+  hrmOvertimeRequests              HrmOvertimeRequest[]
 
   @@map("schools")
 }
@@ -225,6 +228,12 @@ model User {
   markHrmAttendacne           HrmEmployeeAttendance[]       @relation("HrmAttendanceMarkedBy")
   lockHrmAttendance           HrmEmployeeAttendance[]       @relation("HrmAttendanceLockedBy")
   hrmEmployeeAttendanceLogs   HrmEmployeeAttendanceLog[]
+  hrmEmployeeLeaveCancelled   HrmEmployeeLeaveRequest[]     @relation("HrmEmployeeLeaveCancelledBy")
+  hrmEmployeeLeaveRejected    HrmEmployeeLeaveRequest[]     @relation("HrmEmployeeLeaveRejectedBy")
+  hrmEmployeeLeaveApproved    HrmEmployeeLeaveRequest[]     @relation("HrmEmployeeLeaveApprovedBy")
+  hrmEmployeeLeaveRequestLogs HrmEmployeeLeaveRequestLog[]
+  hrmOvertimeApproved         HrmOvertimeRequest[]          @relation("HrmOvertimeApprovedBy")
+  hrmOvertimeRejected         HrmOvertimeRequest[]          @relation("HrmOvertimeRejectedBy")
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -3261,6 +3270,10 @@ model HrmEmployee {
   hrmHolidayAssignments       HrmHolidayAssignment[]
   hrmEmployeeAttendances      HrmEmployeeAttendance[]
   hrmEmployeeAttendanceLogs   HrmEmployeeAttendanceLog[]
+  hrmEmployeeLeaveRequests    HrmEmployeeLeaveRequest[]
+  hrmEmployeeLeaveRequestLogs HrmEmployeeLeaveRequestLog[]
+  overtimeRequests            HrmOvertimeRequest[]         @relation("HrmOvertimeEmployee")
+  appointedOvertimeRequests   HrmOvertimeRequest[]         @relation("HrmOvertimeAppointedBy")
 
   @@index([schoolSlug])
   @@index([userSlug])
@@ -3462,6 +3475,192 @@ model HrmEmployeeSalaryIncrement {
   @@index([employeeSalaryStructureSlug])
   @@index([createdAt])
   @@map("hrm_employee_salary_increments")
+}
+
+// leave request
+
+enum HrmEmployeeLeaveCategory {
+  FULL_DAY
+  HALF_DAY
+  MULTI_DAY
+}
+
+enum HrmEmployeeLeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum HrmEmployeeLeavePayType {
+  PAID
+  UNPAID
+}
+
+model HrmEmployeeLeaveRequest {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @db.VarChar(50)
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  leaveTypeSlug String       @db.VarChar(50)
+  leaveType     HrmLeaveType @relation(fields: [leaveTypeSlug], references: [slug], onDelete: Restrict)
+
+  subject     String @db.VarChar(150)
+  description String @db.VarChar(500)
+
+  leaveCategory HrmEmployeeLeaveCategory
+
+  fromDate DateTime  @db.Date
+  toDate   DateTime? @db.Date
+
+  totalDays Decimal @db.Decimal(6, 2)
+
+  document     String? @db.VarChar(500)
+  documentName String? @db.VarChar(255)
+
+  requestStatus HrmEmployeeLeaveRequestStatus @default(PENDING)
+
+  payType          HrmEmployeeLeavePayType?
+  numberOfDaysPaid Decimal?                 @db.Decimal(6, 2)
+
+  reply String? @db.VarChar(500)
+
+  approvedBySlug String? @db.VarChar(50)
+  approvedBy     User?   @relation("HrmEmployeeLeaveApprovedBy", fields: [approvedBySlug], references: [slug], onDelete: SetNull)
+
+  approvedAt DateTime?
+
+  rejectedBySlug String? @db.VarChar(50)
+  rejectedBy     User?   @relation("HrmEmployeeLeaveRejectedBy", fields: [rejectedBySlug], references: [slug], onDelete: SetNull)
+
+  rejectedAt DateTime?
+
+  cancelledBySlug String? @db.VarChar(50)
+  cancelledBy     User?   @relation("HrmEmployeeLeaveCancelledBy", fields: [cancelledBySlug], references: [slug], onDelete: SetNull)
+
+  cancelledAt DateTime?
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs HrmEmployeeLeaveRequestLog[]
+
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([leaveTypeSlug])
+  @@index([requestStatus])
+  @@index([fromDate])
+  @@index([toDate])
+  @@index([isActive])
+  @@map("hrm_employee_leave_requests")
+}
+
+model HrmEmployeeLeaveRequestLog {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  leaveRequestSlug String                  @db.VarChar(50)
+  leaveRequest     HrmEmployeeLeaveRequest @relation(fields: [leaveRequestSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @db.VarChar(50)
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  action String @db.VarChar(50)
+
+  previousStatus HrmEmployeeLeaveRequestStatus?
+  newStatus      HrmEmployeeLeaveRequestStatus?
+
+  payType          HrmEmployeeLeavePayType?
+  numberOfDaysPaid Decimal?                 @db.Decimal(6, 2)
+
+  reply String? @db.VarChar(500)
+
+  actorSlug String? @db.VarChar(50)
+  actor     User?   @relation(fields: [actorSlug], references: [slug], onDelete: SetNull)
+
+  actorName  String? @db.VarChar(150)
+  actorEmail String? @db.VarChar(150)
+
+  ipAddress String? @db.VarChar(100)
+  userAgent String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolSlug])
+  @@index([leaveRequestSlug])
+  @@index([employeeSlug])
+  @@index([action])
+  @@index([createdAt])
+  @@map("hrm_employee_leave_request_logs")
+}
+
+enum HrmOvertimeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  // CANCELLED
+}
+
+model HrmOvertimeRequest {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @db.VarChar(50)
+  employee     HrmEmployee @relation("HrmOvertimeEmployee", fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  description String @db.VarChar(500)
+
+  appointedBySlug String      @db.VarChar(50)
+  appointedBy     HrmEmployee @relation("HrmOvertimeAppointedBy", fields: [appointedBySlug], references: [slug], onDelete: Restrict)
+
+  overtimeDate DateTime @db.Date
+
+  hoursSpent Decimal @db.Decimal(6, 2)
+
+  requestStatus HrmOvertimeRequestStatus @default(PENDING)
+
+  approvedBySlug String? @db.VarChar(50)
+  approvedBy     User?   @relation("HrmOvertimeApprovedBy", fields: [approvedBySlug], references: [slug], onDelete: SetNull)
+
+  approvedAt DateTime?
+
+  rejectedBySlug String? @db.VarChar(50)
+  rejectedBy     User?   @relation("HrmOvertimeRejectedBy", fields: [rejectedBySlug], references: [slug], onDelete: SetNull)
+
+  rejectedAt DateTime?
+
+  remark String? @db.VarChar(500)
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([appointedBySlug])
+  @@index([overtimeDate])
+  @@index([requestStatus])
+  @@index([isActive])
+  @@index([schoolSlug, employeeSlug, overtimeDate])
+  @@map("hrm_overtime_requests")
 }
 
 // Hrm attandance
@@ -4195,8 +4394,9 @@ model HrmLeaveType {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  hrmEmployeeLeaveRequests HrmEmployeeLeaveRequest[]
 
   @@unique([schoolSlug, leaveType])
   @@index([schoolSlug])

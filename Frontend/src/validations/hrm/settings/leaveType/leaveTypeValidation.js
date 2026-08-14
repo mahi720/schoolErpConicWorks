@@ -8,7 +8,7 @@ export const leaveTypeSchema = z.object({
   daysPerYearAfterYear: z.coerce.number().nonnegative("Days per year after year cannot be negative"),
   carryForward: z.boolean(),
   maximumValue: z.coerce.number().nonnegative("Maximum value cannot be negative"),
-  leaveValue: z.coerce.number().positive("Leave value must be greater than zero"),
+  // leaveValue: z.coerce.number().positive("Leave value must be greater than zero"),
 });
 
 export const leaveTypeInitialValues = {

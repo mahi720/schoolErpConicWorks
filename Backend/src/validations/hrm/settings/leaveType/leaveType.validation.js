@@ -7,7 +7,7 @@ export const createLeaveTypeSchema = z.object({
   daysPerYearAfterYear: z.coerce.number().nonnegative(),
   carryForward: z.boolean(),
   maximumValue: z.coerce.number().nonnegative(),
-  leaveValue: z.coerce.number().positive(),
+  leaveValue: z.coerce.number().nonnegative(),
 });
 
 export const updateLeaveTypeSchema = createLeaveTypeSchema.partial().refine(

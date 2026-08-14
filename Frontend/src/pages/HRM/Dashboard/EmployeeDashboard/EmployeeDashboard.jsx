@@ -7,61 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { useEmployeeStore } from "../../../../store/hrm/employee/employeeStore";
 
 import { useEmployeeAttendanceStore } from "../../../../store/hrm/attendance/employeeAttendanceStore";
+import { useEmployeeLeaveRequestStore } from "../../../../store/hrm/request/leaveRequest/employeeLeaveRequestStore";
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const [requestMenuOpen, setRequestMenuOpen] = useState(false);
-
-  const [leaveRequests] = useState([
-    {
-      id: 11,
-      employeeName: "DEEPA R V",
-      date: "2026-08-03",
-      status: "Pending",
-      duration: "Full Day",
-      leaveType: "CL",
-    },
-    {
-      id: 12,
-      employeeName: "SUNITA K",
-      date: "2026-08-03",
-      status: "Pending",
-      duration: "Full Day",
-      leaveType: "CL",
-    },
-    {
-      id: 13,
-      employeeName: "SURABHI K M K",
-      date: "2026-07-29",
-      status: "Pending",
-      duration: "Full Day",
-      leaveType: "CL",
-    },
-    {
-      id: 14,
-      employeeName: "CHARLOTTE ANTONY",
-      date: "2026-07-28",
-      status: "Pending",
-      duration: "Full Day",
-      leaveType: "CL",
-    },
-    {
-      id: 15,
-      employeeName: "B G ANILA KUMARI",
-      date: "2026-07-28",
-      status: "Pending",
-      duration: "Full Day",
-      leaveType: "CL",
-    },
-    {
-      id: 16,
-      employeeName: "RANJINI VARMA K",
-      date: "2026-07-28",
-      status: "Pending",
-      duration: "Full Day",
-      leaveType: "EL",
-    },
-  ]);
 
   const {
     employees,
@@ -74,6 +24,12 @@ const EmployeeDashboard = () => {
     loading: attendanceLoading,
     fetchAttendances,
   } = useEmployeeAttendanceStore();
+
+  const {
+    leaveRequests,
+    loading: leaveRequestLoading,
+    fetchLeaveRequests,
+  } = useEmployeeLeaveRequestStore();
 
   const today = useMemo(() => {
     const date = new Date();
@@ -93,7 +49,21 @@ const EmployeeDashboard = () => {
     fetchAttendances({
       date: today,
     });
+
+    fetchLeaveRequests({
+      status: "all",
+    });
   }, []);
+
+  const recentLeaveRequests = useMemo(() => {
+    return [...(leaveRequests || [])]
+      .sort((a, b) => {
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      })
+      .slice(0, 30);
+  }, [leaveRequests]);
 
   const employeeList = useMemo(() => {
     if (Array.isArray(employees)) {
@@ -248,7 +218,39 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const loading = employeeLoading || attendanceLoading;
+  const getLeaveStatusClass = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return "bg-emerald-500/15 border-emerald-500/20 text-emerald-400";
+
+      case "REJECTED":
+        return "bg-red-500/15 border-red-500/20 text-red-400";
+
+      case "CANCELLED":
+        return "bg-gray-500/15 border-gray-500/20 text-gray-400";
+
+      default:
+        return "bg-amber-500/15 border-amber-500/20 text-amber-400";
+    }
+  };
+
+  const getLeaveCategoryLabel = (value) => {
+    switch (value) {
+      case "FULL_DAY":
+        return "Full Day";
+
+      case "HALF_DAY":
+        return "Half Day";
+
+      case "MULTI_DAY":
+        return "Multi Day";
+
+      default:
+        return value || "-";
+    }
+  };
+
+  const loading = employeeLoading || attendanceLoading || leaveRequestLoading;
 
   return (
     <div className="space-y-6">
@@ -402,68 +404,91 @@ const EmployeeDashboard = () => {
               </thead>
 
               <tbody className="divide-y divide-gray-800">
-                {leaveRequests.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-800/40">
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {item.id}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-300 font-medium">
-                      {item.employeeName}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-400 whitespace-nowrap">
-                      {formatDate(item.date)}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <span className="inline-flex bg-amber-500/15 border border-amber-500/20 text-amber-400 px-2.5 py-1 rounded-md text-xs">
-                        {item.status}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <span className="inline-flex bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">
-                        {item.duration}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-400">
-                      {item.leaveType}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleView(item)}
-                          className="w-8 h-8 rounded-lg text-indigo-400 bg-indigo-500/10 hover:bg-indigo-600 hover:text-white flex items-center justify-center cursor-pointer"
-                          title="View"
-                        >
-                          <Eye size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(item)}
-                          className="w-8 h-8 rounded-lg text-emerald-400 bg-emerald-500/10 hover:bg-emerald-600 hover:text-white flex items-center justify-center cursor-pointer"
-                          title="Approve"
-                        >
-                          <Check size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleReject(item)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/20 text-red-400 hover:bg-red-500/40 cursor-pointer transition-colors"
-                          title="Reject"
-                        >
-                          <X size={16} />
-                        </button>
+                {leaveRequestLoading ? (
+                  <tr>
+                    <td colSpan={7} className="py-14">
+                      <div className="flex justify-center">
+                        <Loader2
+                          size={26}
+                          className="animate-spin text-indigo-500"
+                        />
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : recentLeaveRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-14 text-center text-gray-500">
+                      No leave requests found
+                    </td>
+                  </tr>
+                ) : (
+                  recentLeaveRequests.map((item, index) => (
+                    <tr key={item.slug} className="hover:bg-gray-800/40">
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {index + 1}.
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-300 font-medium">
+                          {item.name || "-"}
+                        </p>
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          {item.employeeId || "-"}
+                        </p>
+                      </td>
+
+                      <td className="px-4 py-3 text-sm text-gray-400 whitespace-nowrap">
+                        {item.leaveCategory === "MULTI_DAY" ? (
+                          <div className="flex flex-col">
+                            <span>{formatDate(item.fromDate)}</span>
+
+                            <span className="text-gray-500 mt-1">
+                              to {formatDate(item.toDate)}
+                            </span>
+                          </div>
+                        ) : (
+                          formatDate(item.fromDate || item.date)
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex border px-2.5 py-1 rounded-md text-xs ${getLeaveStatusClass(
+                            item.requestStatus,
+                          )}`}
+                        >
+                          {item.requestStatus || "PENDING"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span className="inline-flex bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">
+                          {getLeaveCategoryLabel(item.leaveCategory)}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-sm text-gray-400">
+                        {item.leaveType || "-"}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate("/hrm/employe-dashboard/leave-requests")
+                            }
+                            className="w-8 h-8 rounded-lg text-indigo-400 bg-indigo-500/10 hover:bg-indigo-600 hover:text-white flex items-center justify-center cursor-pointer"
+                            title="View Leave Request"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
