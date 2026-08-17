@@ -20,17 +20,21 @@ export const findDuplicateLoanInterestRepo = async ({
   });
 };
 
-export const getLoanInterestListRepo = async ({ schoolSlug, status, search }) => {
+export const getLoanInterestListRepo = async ({
+  schoolSlug,
+  status,
+  search,
+}) => {
   return prisma.hrmLoanInterest.findMany({
     where: {
       schoolSlug,
       ...(status ? { status } : {}),
       ...(search
         ? {
-            durationMonths: {
-              contains: search,
-            },
-          }
+          durationMonths: {
+            contains: search,
+          },
+        }
         : {}),
     },
     orderBy: {

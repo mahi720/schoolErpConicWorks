@@ -1,4 +1,8 @@
-import { successResponse, errorResponse } from "../../../../utils/apiResponse.js";
+import {
+  successResponse,
+  errorResponse,
+} from "../../../../utils/apiResponse.js";
+
 import {
   getLoanSettingService,
   saveLoanSettingService,
@@ -6,7 +10,10 @@ import {
 
 export const getLoanSettingController = async (req, res) => {
   try {
-    const data = await getLoanSettingService({ schoolSlug: req.user.schoolSlug });
+    const data = await getLoanSettingService({
+      schoolSlug: req.user.schoolSlug,
+    });
+
     return successResponse(res, 200, "Loan setting fetched successfully", data);
   } catch (error) {
     return errorResponse(res, 400, error.message);
@@ -15,7 +22,12 @@ export const getLoanSettingController = async (req, res) => {
 
 export const saveLoanSettingController = async (req, res) => {
   try {
-    const data = await saveLoanSettingService({ schoolSlug: req.user.schoolSlug, payload: req.body });
+    const data = await saveLoanSettingService({
+      schoolSlug: req.user.schoolSlug,
+
+      payload: req.body,
+    });
+
     return successResponse(res, 200, "Loan setting saved successfully", data);
   } catch (error) {
     return errorResponse(res, 400, error.message);

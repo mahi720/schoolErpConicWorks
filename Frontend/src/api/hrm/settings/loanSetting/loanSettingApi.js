@@ -1,15 +1,17 @@
 import API from "../../../axios/axios";
 
-const BASE_URL = "/hrm/settings/loan-setting";
+const LOAN_SETTING_URL = "/hrm/settings/loan-setting";
 
 export const loanSettingApi = {
   get: async () => {
-    const response = await API.get(BASE_URL);
+    const response = await API.get(LOAN_SETTING_URL);
+
     return response.data;
   },
 
   update: async (payload) => {
-    const response = await API.patch(BASE_URL, payload);
+    const response = await API.patch(LOAN_SETTING_URL, payload);
+
     return response.data;
   },
 };

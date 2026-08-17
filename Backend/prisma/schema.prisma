@@ -139,6 +139,8 @@ model School {
   hrmAdvancePolicies               HrmAdvancePolicy[]
   hrmEmployeeAdvances              HrmEmployeeAdvance[]
   hrmEmployeeAdvanceInstallments   HrmEmployeeAdvanceInstallment[]
+  hrmEmployeeLoans                 HrmEmployeeLoan[]
+  hrmEmployeeLoanInstallments      HrmEmployeeLoanInstallment[]
 
   @@map("schools")
 }
@@ -240,6 +242,9 @@ model User {
   hrmEmployeeAdvanceApprovedBy   HrmEmployeeAdvance[]          @relation("HrmEmployeeAdvanceApprovedBy")
   hrmEmployeeAdvanceRejectedBy   HrmEmployeeAdvance[]          @relation("HrmEmployeeAdvanceRejectedBy")
   hrmEmployeeAdvanceForeclosedBy HrmEmployeeAdvance[]          @relation("HrmEmployeeAdvanceForeclosedBy")
+  hrmEmployeeLoanRejectedBy      HrmEmployeeLoan[]             @relation("HrmEmployeeLoanRejectedBy")
+  hrmEmployeeLoanApprovedBy      HrmEmployeeLoan[]             @relation("HrmEmployeeLoanApprovedBy")
+  hrmEmployeeLoanForeclosedBy    HrmEmployeeLoan[]             @relation("HrmEmployeeLoanForeclosedBy")
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -3282,6 +3287,8 @@ model HrmEmployee {
   appointedOvertimeRequests      HrmOvertimeRequest[]            @relation("HrmOvertimeAppointedBy")
   hrmEmployeeAdvances            HrmEmployeeAdvance[]
   hrmEmployeeAdvanceInstallments HrmEmployeeAdvanceInstallment[]
+  hrmEmployeeLoans               HrmEmployeeLoan[]               @relation("HrmEmployeeLoans")
+  hrmEmployeeLoanInstallments    HrmEmployeeLoanInstallment[]    @relation("HrmEmployeeLoanInstallments")
 
   @@index([schoolSlug])
   @@index([userSlug])
@@ -3560,7 +3567,8 @@ model HrmEmployeeLeaveRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  logs HrmEmployeeLeaveRequestLog[]
+  logs                   HrmEmployeeLeaveRequestLog[]
+  hrmEmployeeAttendances HrmEmployeeAttendance[]
 
   @@index([schoolSlug])
   @@index([employeeSlug])
@@ -3853,12 +3861,204 @@ model HrmEmployeeAdvanceInstallment {
   @@map("hrm_employee_advance_installments")
 }
 
+enum HrmEmployeeLoanRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum HrmEmployeeLoanDisbursementStatus {
+  NOT_DISBURSED
+  DISBURSED
+}
+
+enum HrmEmployeeLoanRecoveryStatus {
+  NOT_STARTED
+  RUNNING
+  COMPLETED
+}
+
+enum HrmEmployeeLoanInstallmentStatus {
+  PENDING
+  PARTIALLY_RECOVERED
+  RECOVERED
+  SETTLED
+  SKIPPED
+}
+
+model HrmEmployeeLoan {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @db.VarChar(50)
+  employee     HrmEmployee @relation("HrmEmployeeLoans", fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  loanInterestSlug String?          @db.VarChar(50)
+  loanInterest     HrmLoanInterest? @relation(fields: [loanInterestSlug], references: [slug], onDelete: SetNull)
+
+  requestDate DateTime @db.Date
+
+  reason String @db.VarChar(500)
+
+  requestedAmount Decimal @db.Decimal(12, 2)
+
+  eligibleAmount Decimal @db.Decimal(12, 2)
+
+  requestStatus HrmEmployeeLoanRequestStatus @default(PENDING)
+
+  requestedDurationMonths Int
+
+  requestedAnnualInterest Decimal @db.Decimal(6, 2)
+
+  requestedEmi Decimal @db.Decimal(12, 2)
+
+  approvedAmount Decimal? @db.Decimal(12, 2)
+
+  approvedDurationMonths Int?
+
+  approvedAnnualInterest Decimal? @db.Decimal(6, 2)
+
+  approvedEmi Decimal? @db.Decimal(12, 2)
+
+  approvedBySlug String? @db.VarChar(50)
+  approvedBy     User?   @relation("HrmEmployeeLoanApprovedBy", fields: [approvedBySlug], references: [slug], onDelete: SetNull)
+
+  approvedAt DateTime?
+
+  rejectedBySlug String? @db.VarChar(50)
+  rejectedBy     User?   @relation("HrmEmployeeLoanRejectedBy", fields: [rejectedBySlug], references: [slug], onDelete: SetNull)
+
+  rejectedAt DateTime?
+
+  approvalRemark String? @db.VarChar(500)
+
+  disbursementStatus HrmEmployeeLoanDisbursementStatus @default(NOT_DISBURSED)
+
+  disbursedAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  disbursedAt DateTime?
+
+  paymentMode String? @db.VarChar(30)
+
+  paymentReference String? @db.VarChar(150)
+
+  disbursementRemark String? @db.VarChar(500)
+
+  totalPrincipal Decimal @default(0) @db.Decimal(12, 2)
+
+  totalInterest Decimal @default(0) @db.Decimal(12, 2)
+
+  totalRecoverableAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  totalRecoveredAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  outstandingAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  outstandingPrincipal Decimal @default(0) @db.Decimal(12, 2)
+
+  recoveryStatus HrmEmployeeLoanRecoveryStatus @default(NOT_STARTED)
+
+  isForeclosed Boolean @default(false)
+
+  foreclosedAt DateTime?
+
+  foreclosedBySlug String? @db.VarChar(50)
+  foreclosedBy     User?   @relation("HrmEmployeeLoanForeclosedBy", fields: [foreclosedBySlug], references: [slug], onDelete: SetNull)
+
+  foreclosurePrincipal Decimal? @db.Decimal(12, 2)
+
+  foreclosureCharge Decimal? @db.Decimal(12, 2)
+
+  foreclosureAmount Decimal? @db.Decimal(12, 2)
+
+  foreclosureInterestRate Decimal? @db.Decimal(6, 2)
+
+  foreclosureRemark String? @db.VarChar(500)
+
+  installments HrmEmployeeLoanInstallment[]
+
+  status    String    @default("active") @db.VarChar(20)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([loanInterestSlug])
+  @@index([requestStatus])
+  @@index([disbursementStatus])
+  @@index([recoveryStatus])
+  @@index([isActive])
+  @@index([schoolSlug, employeeSlug])
+  @@map("hrm_employee_loans")
+}
+
+model HrmEmployeeLoanInstallment {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  loanSlug String          @db.VarChar(50)
+  loan     HrmEmployeeLoan @relation(fields: [loanSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @db.VarChar(50)
+  employee     HrmEmployee @relation("HrmEmployeeLoanInstallments", fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  installmentNo Int
+
+  dueMonth DateTime @db.Date
+
+  openingPrincipal Decimal @db.Decimal(12, 2)
+
+  installmentAmount Decimal @db.Decimal(12, 2)
+
+  principalAmount Decimal @db.Decimal(12, 2)
+
+  interestAmount Decimal @db.Decimal(12, 2)
+
+  closingPrincipal Decimal @db.Decimal(12, 2)
+
+  recoveredAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  recoveredPrincipal Decimal @default(0) @db.Decimal(12, 2)
+
+  recoveredInterest Decimal @default(0) @db.Decimal(12, 2)
+
+  recoveredAt DateTime?
+
+  payrollSlug String? @db.VarChar(50)
+
+  status HrmEmployeeLoanInstallmentStatus @default(PENDING)
+
+  remark String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([loanSlug, installmentNo])
+  @@index([schoolSlug])
+  @@index([loanSlug])
+  @@index([employeeSlug])
+  @@index([dueMonth])
+  @@index([status])
+  @@map("hrm_employee_loan_installments")
+}
+
 // Hrm attandance
 
 enum HrmEmployeeAttendanceStatus {
   NOT_MARKED
   PRESENT
   ABSENT
+  HALF_DAY
   LEAVE
   HOLIDAY
 }
@@ -3915,13 +4115,20 @@ model HrmEmployeeAttendance {
   loginBufferMinutes  Int?
   logoutBufferMinutes Int?
 
-  holidaySlug String? @db.VarChar(50)
+  // holidaySlug String? @db.VarChar(50)
+  holidaySlug String?     @db.VarChar(50)
+  holiday     HrmHoliday? @relation(fields: [holidaySlug], references: [slug], onDelete: SetNull)
 
-  basicSettingSlug String? @db.VarChar(50)
+  // basicSettingSlug String? @db.VarChar(50)
+  basicSettingSlug String?          @db.VarChar(50)
+  basicSetting     HrmBasicSetting? @relation(fields: [basicSettingSlug], references: [slug], onDelete: SetNull)
 
-  leaveApplicationSlug String? @db.VarChar(50)
-  leaveTypeSlug        String? @db.VarChar(50)
-  leaveTypeName        String? @db.VarChar(100)
+  // leaveApplicationSlug String? @db.VarChar(50)
+  leaveRequestSlug String?                  @db.VarChar(50)
+  leaveRequest     HrmEmployeeLeaveRequest? @relation(fields: [leaveRequestSlug], references: [slug], onDelete: SetNull)
+
+  // leaveTypeSlug    String?                  @db.VarChar(50)
+  // leaveTypeName    String?                  @db.VarChar(100)
 
   remarks String? @db.VarChar(255)
 
@@ -3951,7 +4158,7 @@ model HrmEmployeeAttendance {
   @@index([attendanceDate])
   @@index([attendanceStatus])
   @@index([shiftSlug])
-  @@index([leaveApplicationSlug])
+  @@index([leaveRequestSlug])
   @@index([holidaySlug])
   @@index([isLocked])
   @@map("hrm_employee_attendances")
@@ -4079,8 +4286,9 @@ model HrmHoliday {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  hrmEmployeeAttendances HrmEmployeeAttendance[]
 
   @@unique([schoolSlug, holidayGroupSlug, holidayDate, scopeKey])
   @@index([schoolSlug])
@@ -4276,8 +4484,9 @@ model HrmBasicSetting {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  hrmEmployeeAttendances HrmEmployeeAttendance[]
 
   @@unique([schoolSlug, departmentSlug, weekDay])
   @@index([schoolSlug])
@@ -4669,13 +4878,19 @@ model HrmLoanInterest {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  hrmEmployeeLoans HrmEmployeeLoan[]
 
   @@unique([schoolSlug, durationMonths])
   @@index([schoolSlug])
   @@index([status])
   @@map("hrm_loan_interests")
+}
+
+enum HrmLoanSalaryBasis {
+  BASIC
+  GROSS
 }
 
 model HrmLoanSetting {
@@ -4684,6 +4899,20 @@ model HrmLoanSetting {
 
   schoolSlug String @unique @db.VarChar(50)
   school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  eligibilityAfterMonths Int @default(6)
+
+  salaryBasis HrmLoanSalaryBasis @default(GROSS)
+
+  maximumSalaryMultiple Decimal @default(5) @db.Decimal(6, 2)
+
+  minimumLoanAmount Decimal? @db.Decimal(12, 2)
+
+  maximumLoanAmount Decimal? @db.Decimal(12, 2)
+
+  allowMultipleLoan Boolean @default(false)
+
+  approvalRequired Boolean @default(true)
 
   forecloseInterest Decimal @default(0) @db.Decimal(6, 2)
 
@@ -4694,6 +4923,7 @@ model HrmLoanSetting {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([isActive])
   @@index([status])
   @@map("hrm_loan_settings")
 }

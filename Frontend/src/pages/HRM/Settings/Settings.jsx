@@ -12,6 +12,7 @@ import DegreeDocuments from "./DegreeDocument";
 import EmployeeLetterType from "./EmployeeLetterType";
 import LeaveType from "./LeaveType";
 import LoanInterest from "./LoanInterest";
+import AdvancePolicy from "./advancePolicy";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("Departments");
@@ -29,6 +30,7 @@ export default function Settings() {
     "Degree Docs",
     "Employee Letter Type",
     "Leave Type",
+    "Advance Policy",
     "Loan Interest",
   ];
 
@@ -66,6 +68,7 @@ export default function Settings() {
       {activeTab === "Degree Docs" && <DegreeDocuments />}
       {activeTab === "Employee Letter Type" && <EmployeeLetterType />}
       {activeTab === "Leave Type" && <LeaveType />}
+      {activeTab === "Advance Policy" && <AdvancePolicy />}
       {activeTab === "Loan Interest" && <LoanInterest />}
     </div>
   );
