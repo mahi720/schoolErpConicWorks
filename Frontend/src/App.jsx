@@ -128,6 +128,9 @@ import LoanRequests from "./pages/HRM/Dashboard/Requests/loanRequest/loanRequest
 import AdvanceRequests from "./pages/HRM/Dashboard/Requests/advanceRequest/advanceRequest";
 import LeaveRequests from "./pages/HRM/Dashboard/Requests/leaveRequest/leaveRequest";
 import CreateMultipleEmployeesLeave from "./pages/HRM/Dashboard/Requests/leaveRequest/multipleLeaveRequest/multipleLeaveRequest";
+import BankStatement from "./pages/HRM/Salaries/BankStatement/bankStatement";
+import EmployeesSalaryReport from "./pages/HRM/Salaries/SalaryStatement/EmployeesSalaryReport";
+import EmployeesSalaryComponentReport from "./pages/HRM/Salaries/EmployeesSalaryComponentReport/employeesSalaryComponentReport";
 
 function App() {
   return (
@@ -362,11 +365,27 @@ function App() {
                         <Route path="/hrm/event" element={<EventCalendar />} />
                         <Route path="/hrm/holidays" element={<Holiday />} />
                         <Route path="/hrm/hiring" element={<Hiring />} />
+
                         <Route
                           path="/hrm/hiring/applications"
                           element={<Applications />}
                         />
+
                         <Route path="/hrm/settings" element={<Settings />} />
+
+                        <Route
+                          path="/hrm/salaries/bank-statement"
+                          element={<BankStatement />}
+                        />
+                        <Route
+                          path="/hrm/salaries/salary-statement"
+                          element={<EmployeesSalaryReport />}
+                        />
+                        <Route
+                          path="/hrm/salaries/salary-component-report"
+                          element={<EmployeesSalaryComponentReport />}
+                        />
+
                         <Route
                           path="/hrm/settings/payband-structure"
                           element={<PaybandStructure />}

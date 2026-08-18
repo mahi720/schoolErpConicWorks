@@ -50,11 +50,17 @@ export default function EmployeesSalary() {
 
         <div className="space-y-3">
           <div className="flex gap-3 justify-end">
-            <button className="bg-indigo-600 px-5 hover:bg-indigo-700 py-2 rounded-lg text-white cursor-pointer">
+            <button
+              onClick={() => navigate("/hrm/salaries/bank-statement")}
+              className="bg-indigo-600 px-5 hover:bg-indigo-700 py-2 rounded-lg text-white cursor-pointer"
+            >
               Bank Statement
             </button>
 
-            <button className="bg-yellow-500 hover:bg-yellow-600 px-5 py-2 rounded-lg text-white cursor-pointer">
+            <button
+              onClick={() => navigate("/hrm/salaries/salary-statement")}
+              className="bg-yellow-500 hover:bg-yellow-600 px-5 py-2 rounded-lg text-white cursor-pointer"
+            >
               Salary Statement
             </button>
 

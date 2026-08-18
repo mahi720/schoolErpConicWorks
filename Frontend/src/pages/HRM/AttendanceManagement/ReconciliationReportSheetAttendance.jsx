@@ -105,7 +105,11 @@ const getRowKey = (item) => {
 };
 
 const getStatusShortName = (status, row) => {
-  if (row?.isSunday || row?.isHoliday) {
+  if (row?.isSunday) {
+    return "S";
+  }
+
+  if (row?.isHoliday || status === "HOLIDAY") {
     return "H";
   }
 
@@ -119,8 +123,8 @@ const getStatusShortName = (status, row) => {
     case "LEAVE":
       return "L";
 
-    case "HOLIDAY":
-      return "H";
+    case "HALF_DAY":
+      return "HD";
 
     case "NOT_MARKED":
       return "-";
@@ -144,6 +148,9 @@ const getStatusClass = (status, row) => {
 
     case "LEAVE":
       return "bg-yellow-500/10 border-yellow-500/20 text-yellow-400";
+
+    case "HALF_DAY":
+      return "bg-orange-500/10 border-orange-500/20 text-orange-400";
 
     default:
       return "bg-gray-500/10 border-gray-500/20 text-gray-400";
@@ -269,7 +276,9 @@ export default function ReconciliationReportSheet() {
         !item.isLocked &&
         !item.isSunday &&
         !item.isHoliday &&
-        item.attendanceStatus !== "HOLIDAY",
+        item.attendanceStatus !== "HOLIDAY" &&
+        item.attendanceStatus !== "LEAVE" &&
+        item.attendanceStatus !== "HALF_DAY",
     );
   }, [filteredData]);
 
@@ -306,7 +315,13 @@ export default function ReconciliationReportSheet() {
       return;
     }
 
-    if (row.isSunday || row.isHoliday || row.attendanceStatus === "HOLIDAY") {
+    if (
+      row.isSunday ||
+      row.isHoliday ||
+      row.attendanceStatus === "HOLIDAY" ||
+      row.attendanceStatus === "LEAVE" ||
+      row.attendanceStatus === "HALF_DAY"
+    ) {
       return;
     }
 
@@ -339,7 +354,8 @@ export default function ReconciliationReportSheet() {
       row.isSunday ||
       row.isHoliday ||
       row.attendanceStatus === "HOLIDAY" ||
-      row.attendanceStatus === "LEAVE"
+      row.attendanceStatus === "LEAVE" ||
+      row.attendanceStatus === "HALF_DAY"
     ) {
       return;
     }
@@ -439,7 +455,8 @@ export default function ReconciliationReportSheet() {
       row.isSunday ||
       row.isHoliday ||
       row.attendanceStatus === "HOLIDAY" ||
-      row.attendanceStatus === "LEAVE"
+      row.attendanceStatus === "LEAVE" ||
+      row.attendanceStatus === "HALF_DAY"
     ) {
       return;
     }
@@ -553,7 +570,9 @@ export default function ReconciliationReportSheet() {
         !item.isLocked &&
         !item.isSunday &&
         !item.isHoliday &&
-        item.attendanceStatus !== "HOLIDAY",
+        item.attendanceStatus !== "HOLIDAY" &&
+        item.attendanceStatus !== "LEAVE" &&
+        item.attendanceStatus !== "HALF_DAY",
     );
 
     if (!rowsToLock.length) {
@@ -587,6 +606,16 @@ export default function ReconciliationReportSheet() {
 
   const lockedCount = useMemo(() => {
     return filteredData.filter((item) => item.isLocked).length;
+  }, [filteredData]);
+
+  const leaveCount = useMemo(() => {
+    return filteredData.filter((item) => item.attendanceStatus === "LEAVE")
+      .length;
+  }, [filteredData]);
+
+  const halfDayCount = useMemo(() => {
+    return filteredData.filter((item) => item.attendanceStatus === "HALF_DAY")
+      .length;
   }, [filteredData]);
 
   const closeAttendanceModal = () => {
@@ -900,7 +929,8 @@ export default function ReconciliationReportSheet() {
                         {item.isSunday ||
                         item.isHoliday ||
                         item.attendanceStatus === "HOLIDAY" ||
-                        item.attendanceStatus === "LEAVE" ? (
+                        item.attendanceStatus === "LEAVE" ||
+                        item.attendanceStatus === "HALF_DAY" ? (
                           <span
                             className={`inline-flex items-center justify-center min-w-7 h-7 border rounded-md text-xs font-semibold ${getStatusClass(
                               item.attendanceStatus,
@@ -1012,6 +1042,18 @@ export default function ReconciliationReportSheet() {
             <span className="text-gray-500">
               Absent:{" "}
               <span className="text-red-400 font-medium">{absentCount}</span>
+            </span>
+
+            <span className="text-gray-500">
+              Leave:{" "}
+              <span className="text-yellow-400 font-medium">{leaveCount}</span>
+            </span>
+
+            <span className="text-gray-500">
+              Half Day:{" "}
+              <span className="text-orange-400 font-medium">
+                {halfDayCount}
+              </span>
             </span>
 
             <span className="text-gray-500">

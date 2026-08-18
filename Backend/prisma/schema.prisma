@@ -4160,6 +4160,7 @@ model HrmEmployeeAttendance {
   @@index([shiftSlug])
   @@index([leaveRequestSlug])
   @@index([holidaySlug])
+  @@index([basicSettingSlug])
   @@index([isLocked])
   @@map("hrm_employee_attendances")
 }

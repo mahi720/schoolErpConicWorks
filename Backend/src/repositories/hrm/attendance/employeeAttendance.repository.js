@@ -4,6 +4,24 @@ export const runEmployeeAttendanceTransactionRepo = async (callback) => {
     return prisma.$transaction(callback);
 };
 
+const employeeAttendanceInclude = {
+    shift: true,
+
+    holiday: {
+        include: {
+            holidayGroup: true,
+        },
+    },
+
+    basicSetting: true,
+
+    leaveRequest: {
+        include: {
+            leaveType: true,
+        },
+    },
+};
+
 export const getAttendanceEmployeesRepo = async ({
     schoolSlug,
     attendanceDate,
@@ -77,9 +95,11 @@ export const findEmployeeAttendanceRepo = async ({
             isActive: true,
         },
 
-        include: {
-            shift: true,
-        },
+        // include: {
+        //     shift: true,
+        // },
+
+        include: employeeAttendanceInclude,
     });
 };
 
@@ -106,8 +126,10 @@ export const findEmployeeAttendanceBySlugRepo = async ({
                 },
             },
 
-            shift: true,
+            ...employeeAttendanceInclude,
         },
+
+        // include: employeeAttendanceInclude,
     });
 };
 
@@ -123,9 +145,11 @@ export const getEmployeeAttendancesForDateRepo = async ({
             isActive: true,
         },
 
-        include: {
-            shift: true,
-        },
+        // include: {
+        //     shift: true,
+        // },
+
+        include: employeeAttendanceInclude,
     });
 };
 
@@ -269,6 +293,104 @@ export const findEmployeeHolidayRepo = async ({
     });
 };
 
+export const findApprovedEmployeeLeaveForDateRepo = async ({
+    schoolSlug,
+    employeeSlug,
+    attendanceDate,
+    db = prisma,
+}) => {
+    return db.hrmEmployeeLeaveRequest.findFirst({
+        where: {
+            schoolSlug,
+            employeeSlug,
+
+            requestStatus: "APPROVED",
+
+            isActive: true,
+
+            OR: [
+                {
+                    leaveCategory: {
+                        in: ["FULL_DAY", "HALF_DAY"],
+                    },
+
+                    fromDate: attendanceDate,
+                },
+                {
+                    leaveCategory: "MULTI_DAY",
+
+                    fromDate: {
+                        lte: attendanceDate,
+                    },
+
+                    toDate: {
+                        gte: attendanceDate,
+                    },
+                },
+            ],
+        },
+
+        include: {
+            leaveType: true,
+        },
+
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+};
+
+export const getApprovedEmployeeLeavesForRangeRepo = async ({
+    schoolSlug,
+    employeeSlug,
+    startDate,
+    endDate,
+    db = prisma,
+}) => {
+    return db.hrmEmployeeLeaveRequest.findMany({
+        where: {
+            schoolSlug,
+            employeeSlug,
+
+            requestStatus: "APPROVED",
+
+            isActive: true,
+
+            OR: [
+                {
+                    leaveCategory: {
+                        in: ["FULL_DAY", "HALF_DAY"],
+                    },
+
+                    fromDate: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                {
+                    leaveCategory: "MULTI_DAY",
+
+                    fromDate: {
+                        lte: endDate,
+                    },
+
+                    toDate: {
+                        gte: startDate,
+                    },
+                },
+            ],
+        },
+
+        include: {
+            leaveType: true,
+        },
+
+        orderBy: {
+            fromDate: "asc",
+        },
+    });
+};
+
 export const upsertEmployeeAttendanceRepo = async ({
     schoolSlug,
     employeeSlug,
@@ -290,9 +412,10 @@ export const upsertEmployeeAttendanceRepo = async ({
 
         update: updateData,
 
-        include: {
-            shift: true,
-        },
+        // include: {
+        //     shift: true,
+        // },
+        include: employeeAttendanceInclude,
     });
 };
 
@@ -300,9 +423,10 @@ export const createEmployeeAttendanceRepo = async (data, db = prisma) => {
     return db.hrmEmployeeAttendance.create({
         data,
 
-        include: {
-            shift: true,
-        },
+        // include: {
+        //     shift: true,
+        // },
+        include: employeeAttendanceInclude,
     });
 };
 
@@ -318,9 +442,11 @@ export const updateEmployeeAttendanceRepo = async ({
 
         data,
 
-        include: {
-            shift: true,
-        },
+        // include: {
+        //     shift: true,
+        // },
+
+        include: employeeAttendanceInclude,
     });
 };
 
@@ -616,12 +742,13 @@ export const getEmployeeMonthlyAttendanceDetailRepo = async ({
                 where: {
                     attendanceDate: {
                         gte: startDate,
-
                         lte: endDate,
                     },
 
                     isActive: true,
                 },
+
+                include: employeeAttendanceInclude,
 
                 orderBy: {
                     attendanceDate: "asc",

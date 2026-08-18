@@ -25,6 +25,8 @@ import {
     getEmployeeMonthlyAttendanceDetailRepo,
     lockEmployeeAttendanceBySlugRepo,
     getNoPunchReportRepo,
+    findApprovedEmployeeLeaveForDateRepo,
+    getApprovedEmployeeLeavesForRangeRepo,
 } from "../../../repositories/HRM/attendance/employeeAttendance.repository.js";
 
 // const MS_PER_DAY =
@@ -67,6 +69,75 @@ const getInclusiveDates = (startDate, endDate) => {
     }
 
     return dates;
+};
+
+const getEmployeeLeaveDateMap = ({
+    leaves,
+    academicStartDate,
+    academicEndDate,
+    sundayDateSet,
+    holidayDateSet,
+}) => {
+    const leaveDateMap = new Map();
+
+    for (const leave of leaves) {
+        const leaveStartDate = new Date(leave.fromDate);
+
+        const leaveEndDate = new Date(
+            leave.leaveCategory === "MULTI_DAY" && leave.toDate
+                ? leave.toDate
+                : leave.fromDate,
+        );
+
+        const startDate =
+            leaveStartDate < academicStartDate
+                ? academicStartDate
+                : leaveStartDate;
+
+        const endDate =
+            leaveEndDate > academicEndDate
+                ? academicEndDate
+                : leaveEndDate;
+
+        if (endDate < startDate) {
+            continue;
+        }
+
+        const leaveDates = getInclusiveDates(
+            startDate,
+            endDate,
+        );
+
+        const leaveValue =
+            leave.leaveCategory === "HALF_DAY"
+                ? 0.5
+                : 1;
+
+        for (const date of leaveDates) {
+            const dateKey = toDateKey(date);
+
+            if (sundayDateSet.has(dateKey)) {
+                continue;
+            }
+
+            if (holidayDateSet.has(dateKey)) {
+                continue;
+            }
+
+            const existingValue =
+                leaveDateMap.get(dateKey) || 0;
+
+            leaveDateMap.set(
+                dateKey,
+                Math.min(
+                    1,
+                    existingValue + leaveValue,
+                ),
+            );
+        }
+    }
+
+    return leaveDateMap;
 };
 
 const getSundayDateSet = (dates) => {
@@ -394,16 +465,15 @@ const resolveApprovedEmployeeLeave = async ({
     schoolSlug,
     employeeSlug,
     attendanceDate,
+    db,
 }) => {
-    // Leave module abhi implement nahi hua hai.
-    // Future me isi helper ke andar approved leave query add hogi.
-    // Attendance ke baaki service ko change nahi karna padega.
 
-    void schoolSlug;
-    void employeeSlug;
-    void attendanceDate;
-
-    return null;
+    return findApprovedEmployeeLeaveForDateRepo({
+        schoolSlug,
+        employeeSlug,
+        attendanceDate,
+        db,
+    });
 };
 
 const resolveAttendanceContext = async ({
@@ -423,6 +493,13 @@ const resolveAttendanceContext = async ({
 
         db,
     });
+
+    // const leave = await resolveApprovedEmployeeLeave({
+    //     schoolSlug,
+    //     employeeSlug: employee.slug,
+    //     attendanceDate,
+    //     db,
+    // });
 
     if (holiday) {
         return {
@@ -472,20 +549,23 @@ const resolveAttendanceContext = async ({
 
     const leave = await resolveApprovedEmployeeLeave({
         schoolSlug,
-
         employeeSlug: employee.slug,
-
         attendanceDate,
+        db,
     });
 
     if (leave) {
         return {
             type: "LEAVE",
 
+            attendanceStatus:
+                leave.leaveCategory === "HALF_DAY"
+                    ? "HALF_DAY"
+                    : "LEAVE",
+
             source: "LEAVE",
 
             holiday: null,
-
             holidayName: null,
 
             basicSetting,
@@ -493,6 +573,9 @@ const resolveAttendanceContext = async ({
             shift: basicSetting?.shift || null,
 
             leave,
+
+            leaveTypeName:
+                leave.leaveType?.leaveType || "Leave",
         };
     }
 
@@ -661,19 +744,27 @@ const formatAttendanceRow = ({ employee, attendance, context }) => {
         (context.type === "HOLIDAY"
             ? "HOLIDAY"
             : context.type === "LEAVE"
-                ? "LEAVE"
+                ? context.attendanceStatus
                 : "NOT_MARKED");
 
     let leaveHoliday = null;
 
     if (resolvedStatus === "HOLIDAY") {
         leaveHoliday =
-            attendance?.leaveTypeName || context.holidayName || "Holiday";
+            attendance?.holiday?.title ||
+            attendance?.holiday?.holidayGroup?.title ||
+            context.holidayName ||
+            "Holiday";
     }
 
-    if (resolvedStatus === "LEAVE") {
+    if (
+        resolvedStatus === "LEAVE" ||
+        resolvedStatus === "HALF_DAY"
+    ) {
         leaveHoliday =
-            attendance?.leaveTypeName || context.leave?.leaveTypeName || "Leave";
+            attendance?.leaveRequest?.leaveType?.leaveType ||
+            context.leave?.leaveType?.leaveType ||
+            "Leave";
     }
 
     const shift = attendance?.shift || context.shift || null;
@@ -682,24 +773,18 @@ const formatAttendanceRow = ({ employee, attendance, context }) => {
         attendanceSlug: attendance?.slug || null,
 
         employeeSlug: employee.slug,
-
         employeeId: employee.employeeId,
-
         employeeSerial: employee.employeeSerial,
-
         employeeCode: employee.employeeCode,
-
         fullName: employee.fullName,
 
         department: {
             slug: employee.department?.slug || null,
-
             name: employee.department?.departmentName || "-",
         },
 
         designation: {
             slug: employee.designation?.slug || null,
-
             name: employee.designation?.designationName || "-",
         },
 
@@ -708,35 +793,43 @@ const formatAttendanceRow = ({ employee, attendance, context }) => {
         source: attendance?.source || context.source || null,
 
         inTime: attendance?.inTime || null,
-
         outTime: attendance?.outTime || null,
 
         isLate: attendance?.isLate || false,
-
         isEarly: attendance?.isEarly || false,
 
         lateMinutes: attendance?.lateMinutes ?? null,
-
         earlyMinutes: attendance?.earlyMinutes ?? null,
 
         leaveHoliday,
+
+        leaveRequestSlug:
+            attendance?.leaveRequestSlug ||
+            context.leave?.slug ||
+            null,
+
+        leaveType: attendance?.leaveRequest?.leaveType
+            ? {
+                slug: attendance.leaveRequest.leaveType.slug,
+                name: attendance.leaveRequest.leaveType.leaveType,
+            }
+            : context.leave?.leaveType
+                ? {
+                    slug: context.leave.leaveType.slug,
+                    name: context.leave.leaveType.leaveType,
+                }
+                : null,
 
         isLocked: attendance?.isLocked || false,
 
         shift: shift
             ? {
                 slug: shift.slug,
-
                 shiftName: shift.shiftName,
-
                 shiftCode: shift.shiftCode,
-
                 loginTime: prismaTimeToHHMM(shift.loginTime),
-
                 logoutTime: prismaTimeToHHMM(shift.logoutTime),
-
                 loginBufferMinutes: shift.loginBufferMinutes,
-
                 logoutBufferMinutes: shift.logoutBufferMinutes,
             }
             : null,
@@ -765,6 +858,10 @@ const buildSummary = (rows) => {
                     summary.holiday += 1;
                     break;
 
+                case "HALF_DAY":
+                    summary.halfDay += 1;
+                    break;
+
                 default:
                     summary.notMarked += 1;
                     break;
@@ -776,6 +873,7 @@ const buildSummary = (rows) => {
             total: 0,
             present: 0,
             absent: 0,
+            halfDay: 0,
             leave: 0,
             holiday: 0,
             notMarked: 0,
@@ -947,11 +1045,13 @@ export const markEmployeePresentService = async ({
 
                 holidaySlug: null,
 
-                leaveApplicationSlug: null,
+                // leaveApplicationSlug: null,
 
-                leaveTypeSlug: null,
+                // leaveTypeSlug: null,
 
-                leaveTypeName: null,
+                // leaveTypeName: null,
+
+                leaveRequestSlug: null,
 
                 remarks: payload.remarks || null,
 
@@ -983,11 +1083,12 @@ export const markEmployeePresentService = async ({
 
                 holidaySlug: null,
 
-                leaveApplicationSlug: null,
+                // leaveApplicationSlug: null,
+                leaveRequestSlug: null,
 
-                leaveTypeSlug: null,
+                // leaveTypeSlug: null,
 
-                leaveTypeName: null,
+                // leaveTypeName: null,
 
                 remarks: payload.remarks || null,
 
@@ -1154,11 +1255,12 @@ export const markEmployeeAbsentService = async ({
 
                 holidaySlug: null,
 
-                leaveApplicationSlug: null,
+                // leaveApplicationSlug: null,
+                leaveRequestSlug: null,
 
-                leaveTypeSlug: null,
+                // leaveTypeSlug: null,
 
-                leaveTypeName: null,
+                // leaveTypeName: null,
 
                 remarks: payload.remarks || null,
 
@@ -1308,7 +1410,10 @@ export const lockEmployeeAttendanceService = async ({
             attendanceDate,
         });
 
-        if (attendance) {
+        if (
+            attendance &&
+            attendance.attendanceStatus !== "NOT_MARKED"
+        ) {
             resolvedRows.push({
                 employee,
                 attendance,
@@ -1328,7 +1433,8 @@ export const lockEmployeeAttendanceService = async ({
             resolvedRows.push({
                 employee,
 
-                attendance: null,
+                // attendance: null,
+                attendance,
 
                 autoData: {
                     attendanceStatus: "HOLIDAY",
@@ -1339,7 +1445,8 @@ export const lockEmployeeAttendanceService = async ({
 
                     basicSettingSlug: context.basicSetting?.slug || null,
 
-                    leaveTypeName: context.holidayName || "Holiday",
+                    // leaveTypeName: context.holidayName || "Holiday",
+                    leaveRequestSlug: null,
 
                     action: "AUTO_HOLIDAY",
                 },
@@ -1352,10 +1459,11 @@ export const lockEmployeeAttendanceService = async ({
             resolvedRows.push({
                 employee,
 
-                attendance: null,
+                // attendance: null,
+                attendance,
 
                 autoData: {
-                    attendanceStatus: "LEAVE",
+                    attendanceStatus: context.attendanceStatus,
 
                     source: "LEAVE",
 
@@ -1363,11 +1471,23 @@ export const lockEmployeeAttendanceService = async ({
 
                     basicSettingSlug: context.basicSetting?.slug || null,
 
-                    leaveApplicationSlug: context.leave?.slug || null,
+                    leaveRequestSlug: context.leave?.slug || null,
 
-                    leaveTypeSlug: context.leave?.leaveTypeSlug || null,
+                    shiftSlug: context.shift?.slug || null,
 
-                    leaveTypeName: context.leave?.leaveTypeName || "Leave",
+                    expectedInTime: context.shift
+                        ? prismaTimeToHHMM(context.shift.loginTime)
+                        : null,
+
+                    expectedOutTime: context.shift
+                        ? prismaTimeToHHMM(context.shift.logoutTime)
+                        : null,
+
+                    loginBufferMinutes:
+                        context.shift?.loginBufferMinutes ?? null,
+
+                    logoutBufferMinutes:
+                        context.shift?.logoutBufferMinutes ?? null,
 
                     action: "AUTO_LEAVE",
                 },
@@ -1390,7 +1510,8 @@ export const lockEmployeeAttendanceService = async ({
         resolvedRows.push({
             employee,
 
-            attendance: null,
+            // attendance: null,
+            attendance,
 
             autoData: {
                 attendanceStatus: "NOT_MARKED",
@@ -1401,11 +1522,13 @@ export const lockEmployeeAttendanceService = async ({
 
                 basicSettingSlug: context.basicSetting?.slug || null,
 
-                leaveApplicationSlug: null,
+                // leaveApplicationSlug: null,
 
-                leaveTypeSlug: null,
+                // leaveTypeSlug: null,
 
-                leaveTypeName: null,
+                // leaveTypeName: null,
+
+                leaveRequestSlug: null,
 
                 shiftSlug: context.shift?.slug || null,
 
@@ -1520,6 +1643,63 @@ export const lockEmployeeAttendanceService = async ({
             //         tx,
             //     );
             // }
+
+            if (
+                attendance &&
+                attendance.attendanceStatus === "NOT_MARKED" &&
+                item.autoData
+            ) {
+                const { action, ...autoData } = item.autoData;
+
+                const previous = {
+                    ...attendance,
+                };
+
+                attendance = await tx.hrmEmployeeAttendance.update({
+                    where: {
+                        slug: attendance.slug,
+                    },
+
+                    data: {
+                        ...autoData,
+
+                        inTime: null,
+                        outTime: null,
+
+                        isLate: false,
+                        isEarly: false,
+
+                        lateMinutes: null,
+                        earlyMinutes: null,
+
+                        markedAt: action ? new Date() : attendance.markedAt,
+
+                        markedBySlug: action
+                            ? user?.slug || null
+                            : attendance.markedBySlug,
+                    },
+                });
+
+                if (action) {
+                    await createEmployeeAttendanceLogRepo(
+                        buildAttendanceLog({
+                            schoolSlug,
+
+                            attendance,
+
+                            previous,
+
+                            action,
+
+                            user,
+
+                            metadata,
+                        }),
+
+                        tx,
+                    );
+                }
+            }
 
             if (!attendance && item.autoData) {
                 const { action, ...autoData } = item.autoData;
@@ -1811,19 +1991,34 @@ export const getYearlyAttendanceReportService = async ({
             endDate: academicEndDate,
         });
 
-        const leaveDateSet = getEmployeeLeaveDateSet({
+        // const leaveDateSet = getEmployeeLeaveDateSet({
+        //     leaves,
+
+        //     academicStartDate,
+
+        //     academicEndDate,
+
+        //     sundayDateSet,
+
+        //     holidayDateSet,
+        // });
+
+        const leaveDateMap = getEmployeeLeaveDateMap({
             leaves,
-
             academicStartDate,
-
             academicEndDate,
-
             sundayDateSet,
-
             holidayDateSet,
         });
 
-        const totalLeaveDays = leaveDateSet.size;
+        const totalLeaveDays = Array.from(
+            leaveDateMap.values(),
+        ).reduce(
+            (total, value) => total + value,
+            0,
+        );
+
+        // const totalLeaveDays = leaveDateSet.size;
 
         const attendanceApplicableDays = Math.max(
             0,
@@ -1839,7 +2034,7 @@ export const getYearlyAttendanceReportService = async ({
                     (dateKey) =>
                         !sundayDateSet.has(dateKey) &&
                         !holidayDateSet.has(dateKey) &&
-                        !leaveDateSet.has(dateKey),
+                        !leaveDateMap.has(dateKey),
                 ),
         );
 
@@ -1850,7 +2045,9 @@ export const getYearlyAttendanceReportService = async ({
                 attendance.attendanceStatus === "ABSENT" &&
                 !sundayDateSet.has(toDateKey(attendance.attendanceDate)) &&
                 !holidayDateSet.has(toDateKey(attendance.attendanceDate)) &&
-                !leaveDateSet.has(toDateKey(attendance.attendanceDate)),
+                !leaveDateMap.has(
+                    toDateKey(attendance.attendanceDate),
+                )
         ).length;
 
         const notMarkedDays = Math.max(
@@ -2012,12 +2209,13 @@ export const bulkSaveEmployeeAttendanceService = async ({
                         basicSettingSlug: context.basicSetting?.slug || null,
 
                         holidaySlug: null,
+                        leaveRequestSlug: null,
 
-                        leaveApplicationSlug: null,
+                        // leaveApplicationSlug: null,
 
-                        leaveTypeSlug: null,
+                        // leaveTypeSlug: null,
 
-                        leaveTypeName: null,
+                        // leaveTypeName: null,
 
                         remarks: row.remarks || null,
 
@@ -2049,11 +2247,14 @@ export const bulkSaveEmployeeAttendanceService = async ({
 
                         holidaySlug: null,
 
-                        leaveApplicationSlug: null,
+                        // leaveApplicationSlug: null,
 
-                        leaveTypeSlug: null,
+                        // leaveTypeSlug: null,
 
-                        leaveTypeName: null,
+                        // leaveTypeName: null,
+
+                        leaveRequestSlug: null,
+
 
                         remarks: row.remarks || null,
 
@@ -2141,11 +2342,12 @@ export const bulkSaveEmployeeAttendanceService = async ({
 
                     holidaySlug: null,
 
-                    leaveApplicationSlug: null,
+                    // leaveApplicationSlug: null,
+                    leaveRequestSlug: null,
 
-                    leaveTypeSlug: null,
+                    // leaveTypeSlug: null,
 
-                    leaveTypeName: null,
+                    // leaveTypeName: null,
 
                     remarks: row.remarks || null,
 
@@ -2185,11 +2387,13 @@ export const bulkSaveEmployeeAttendanceService = async ({
 
                     holidaySlug: null,
 
-                    leaveApplicationSlug: null,
+                    // leaveApplicationSlug: null,
 
-                    leaveTypeSlug: null,
+                    // leaveTypeSlug: null,
 
-                    leaveTypeName: null,
+                    // leaveTypeName: null,
+
+                    leaveRequestSlug: null,
 
                     remarks: row.remarks || null,
 
@@ -2493,11 +2697,13 @@ export const importEmployeeAttendanceService = async ({
 
                         holidaySlug: null,
 
-                        leaveApplicationSlug: null,
+                        // leaveApplicationSlug: null,
 
-                        leaveTypeSlug: null,
+                        // leaveTypeSlug: null,
 
-                        leaveTypeName: null,
+                        // leaveTypeName: null,
+
+                        leaveRequestSlug: null,
 
                         remarks,
 
@@ -2529,11 +2735,13 @@ export const importEmployeeAttendanceService = async ({
 
                         holidaySlug: null,
 
-                        leaveApplicationSlug: null,
+                        // leaveApplicationSlug: null,
 
-                        leaveTypeSlug: null,
+                        // leaveTypeSlug: null,
 
-                        leaveTypeName: null,
+                        // leaveTypeName: null,
+
+                        leaveRequestSlug: null,
 
                         remarks,
 
@@ -2707,59 +2915,65 @@ const getApprovedEmployeeLeaveDates = async ({
     //
     // Abhi leave module nahi hai isliye empty array.
 
-    void schoolSlug;
-    void employeeSlug;
-    void startDate;
-    void endDate;
-
-    return [];
+    return getApprovedEmployeeLeavesForRangeRepo({
+        schoolSlug,
+        employeeSlug,
+        startDate,
+        endDate,
+    });
 };
 
-const getEmployeeLeaveDateSet = ({
-    leaves,
-    academicStartDate,
-    academicEndDate,
-    sundayDateSet,
-    holidayDateSet,
-}) => {
-    const leaveDateSet = new Set();
+// const getEmployeeLeaveDateSet = ({
+//     leaves,
+//     academicStartDate,
+//     academicEndDate,
+//     sundayDateSet,
+//     holidayDateSet,
+// }) => {
+//     const leaveDateSet = new Set();
 
-    for (const leave of leaves) {
-        const leaveStartDate = new Date(leave.startDate);
+//     for (const leave of leaves) {
+//         const leaveStartDate = new Date(leave.fromDate);
 
-        const leaveEndDate = new Date(leave.endDate);
+//         const leaveEndDate = new Date(
+//             leave.leaveCategory === "MULTI_DAY" && leave.toDate
+//                 ? leave.toDate
+//                 : leave.fromDate,
+//         );
 
-        const startDate =
-            leaveStartDate < academicStartDate ? academicStartDate : leaveStartDate;
+//         const startDate =
+//             leaveStartDate < academicStartDate
+//                 ? academicStartDate
+//                 : leaveStartDate;
 
-        const endDate =
-            leaveEndDate > academicEndDate ? academicEndDate : leaveEndDate;
+//         const endDate =
+//             leaveEndDate > academicEndDate
+//                 ? academicEndDate
+//                 : leaveEndDate;
 
-        if (endDate < startDate) {
-            continue;
-        }
+//         if (endDate < startDate) {
+//             continue;
+//         }
 
-        const leaveDates = getInclusiveDates(startDate, endDate);
+//         const leaveDates = getInclusiveDates(startDate, endDate);
 
-        for (const date of leaveDates) {
-            const dateKey = toDateKey(date);
+//         for (const date of leaveDates) {
+//             const dateKey = toDateKey(date);
 
-            // Sunday ko leave me count nahi karenge
-            if (sundayDateSet.has(dateKey)) {
-                continue;
-            }
+//             if (sundayDateSet.has(dateKey)) {
+//                 continue;
+//             }
 
-            // Holiday ke din leave count nahi hoga
-            if (holidayDateSet.has(dateKey)) {
-                continue;
-            }
+//             if (holidayDateSet.has(dateKey)) {
+//                 continue;
+//             }
 
-            leaveDateSet.add(dateKey);
-        }
-    }
+//             leaveDateSet.add(dateKey);
+//         }
+//     }
 
-    return leaveDateSet;
-};
+//     return leaveDateSet;
+// };
 
 export const getMonthlyAttendanceReportService = async ({
     schoolSlug,
@@ -2963,17 +3177,25 @@ export const getEmployeeMonthlyReconciliationService = async ({
         throw new Error("Employee not found");
     }
 
-    const [holidays, basicSettings] = await Promise.all([
-        getAcademicYearHolidaysRepo({
-            schoolSlug,
-            startDate,
-            endDate,
-        }),
+    const [holidays, basicSettings, approvedLeaves] =
+        await Promise.all([
+            getAcademicYearHolidaysRepo({
+                schoolSlug,
+                startDate,
+                endDate,
+            }),
 
-        getAcademicYearBasicSettingsRepo({
-            schoolSlug,
-        }),
-    ]);
+            getAcademicYearBasicSettingsRepo({
+                schoolSlug,
+            }),
+
+            getApprovedEmployeeLeavesForRangeRepo({
+                schoolSlug,
+                employeeSlug,
+                startDate,
+                endDate,
+            }),
+        ]);
 
     const monthDates = getInclusiveDates(startDate, endDate);
 
@@ -2986,6 +3208,42 @@ export const getEmployeeMonthlyReconciliationService = async ({
         basicSettings,
         sundayDateSet,
     });
+
+    const leaveDateMap = new Map();
+
+    for (const leave of approvedLeaves) {
+        const leaveStartDate = new Date(
+            leave.fromDate,
+        );
+
+        const leaveEndDate =
+            leave.leaveCategory === "MULTI_DAY" &&
+                leave.toDate
+                ? new Date(leave.toDate)
+                : new Date(leave.fromDate);
+
+        const leaveDates = getInclusiveDates(
+            leaveStartDate,
+            leaveEndDate,
+        );
+
+        for (const leaveDate of leaveDates) {
+            const dateKey =
+                toDateKey(leaveDate);
+
+            if (
+                sundayDateSet.has(dateKey) ||
+                holidayDateSet.has(dateKey)
+            ) {
+                continue;
+            }
+
+            leaveDateMap.set(
+                dateKey,
+                leave,
+            );
+        }
+    }
 
     const attendanceMap = new Map(
         (employee.hrmEmployeeAttendances || []).map((attendance) => [
@@ -3003,12 +3261,55 @@ export const getEmployeeMonthlyReconciliationService = async ({
 
         const isHoliday = holidayDateSet.has(dateKey);
 
+        const approvedLeave =
+            leaveDateMap.get(dateKey) ||
+            null;
+
         let holidayName = null;
+
+        let resolvedAttendanceStatus =
+            attendance?.attendanceStatus ||
+            null;
+
+        let resolvedLeaveTypeName =
+            attendance?.leaveRequest
+                ?.leaveType
+                ?.leaveType ||
+            null;
+
+        let resolvedLeaveRequestSlug =
+            attendance?.leaveRequestSlug ||
+            null;
 
         if (isSunday) {
             holidayName = "Sunday";
         } else if (isHoliday) {
             holidayName = "Holiday";
+        }
+
+        if (
+            approvedLeave &&
+            !isSunday &&
+            !isHoliday &&
+            (
+                !attendance ||
+                attendance.attendanceStatus ===
+                "NOT_MARKED"
+            )
+        ) {
+            resolvedAttendanceStatus =
+                approvedLeave.leaveCategory ===
+                    "HALF_DAY"
+                    ? "HALF_DAY"
+                    : "LEAVE";
+
+            resolvedLeaveTypeName =
+                approvedLeave.leaveType
+                    ?.leaveType ||
+                "Leave";
+
+            resolvedLeaveRequestSlug =
+                approvedLeave.slug;
         }
 
         return {
@@ -3018,7 +3319,9 @@ export const getEmployeeMonthlyReconciliationService = async ({
 
             attendanceSlug: attendance?.slug || null,
 
-            attendanceStatus: attendance?.attendanceStatus || null,
+            // attendanceStatus: attendance?.attendanceStatus || null,
+            attendanceStatus:
+                resolvedAttendanceStatus,
 
             inTime: attendance?.inTime || null,
 
@@ -3028,7 +3331,16 @@ export const getEmployeeMonthlyReconciliationService = async ({
 
             isEarly: Boolean(attendance?.isEarly),
 
-            leaveTypeName: attendance?.leaveTypeName || null,
+            // leaveTypeName: attendance?.leaveTypeName || null,
+            // leaveTypeName:
+            //     attendance?.leaveRequest?.leaveType?.leaveType || null,
+            leaveTypeName:
+                resolvedLeaveTypeName,
+
+            // leaveRequestSlug:
+            //     attendance?.leaveRequestSlug || null,
+            leaveRequestSlug:
+                resolvedLeaveRequestSlug,
 
             isLocked: Boolean(attendance?.isLocked),
 

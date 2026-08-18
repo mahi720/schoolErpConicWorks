@@ -78,7 +78,17 @@ const getDepartmentDesignation = (employee) => {
   return department;
 };
 
-const getStatusShortName = (status) => {
+const isSundayDate = (date) => {
+  if (!date) {
+    return false;
+  }
+
+  const parsedDate = new Date(`${date}T00:00:00`);
+
+  return parsedDate.getDay() === 0;
+};
+
+const getStatusShortName = (status, isSunday = false) => {
   switch (status) {
     case "PRESENT":
       return "P";
@@ -89,8 +99,11 @@ const getStatusShortName = (status) => {
     case "LEAVE":
       return "L";
 
+    case "HALF_DAY":
+      return "HD";
+
     case "HOLIDAY":
-      return "H";
+      return isSunday ? "S" : "H";
 
     default:
       return "-";
@@ -110,6 +123,9 @@ const getStatusClass = (status) => {
 
     case "HOLIDAY":
       return "bg-purple-500";
+
+    case "HALF_DAY":
+      return "bg-orange-500";
 
     default:
       return "bg-gray-600 hover:bg-gray-500";
@@ -204,7 +220,8 @@ export default function AttendanceManagement() {
       (employee) =>
         !employee.isLocked &&
         employee.attendanceStatus !== "HOLIDAY" &&
-        employee.attendanceStatus !== "LEAVE",
+        employee.attendanceStatus !== "LEAVE" &&
+        employee.attendanceStatus !== "HALF_DAY",
     );
   }, [employees]);
 
@@ -253,7 +270,8 @@ export default function AttendanceManagement() {
 
     if (
       employee.attendanceStatus === "HOLIDAY" ||
-      employee.attendanceStatus === "LEAVE"
+      employee.attendanceStatus === "LEAVE" ||
+      employee.attendanceStatus === "HALF_DAY"
     ) {
       return;
     }
@@ -289,7 +307,8 @@ export default function AttendanceManagement() {
 
     if (
       employee.attendanceStatus === "HOLIDAY" ||
-      employee.attendanceStatus === "LEAVE"
+      employee.attendanceStatus === "LEAVE" ||
+      employee.attendanceStatus === "HALF_DAY"
     ) {
       return;
     }
@@ -326,7 +345,8 @@ export default function AttendanceManagement() {
 
     if (
       employee.attendanceStatus === "HOLIDAY" ||
-      employee.attendanceStatus === "LEAVE"
+      employee.attendanceStatus === "LEAVE" ||
+      employee.attendanceStatus === "HALF_DAY"
     ) {
       return;
     }
@@ -694,6 +714,10 @@ export default function AttendanceManagement() {
             Leave: {summary.leave}
           </span>
 
+          <span className="bg-orange-500/15 text-orange-400 px-4 py-2 rounded-lg">
+            Half Day: {summary.halfDay}
+          </span>
+
           <span className="bg-purple-500/15 text-purple-400 px-4 py-2 rounded-lg">
             Holiday: {summary.holiday}
           </span>
@@ -759,10 +783,14 @@ export default function AttendanceManagement() {
                 employees.map((employee, index) => {
                   const status = employee.attendanceStatus || "NOT_MARKED";
 
+                  const isSunday = status === "HOLIDAY" && isSundayDate(date);
+
                   const rowLocked = Boolean(employee.isLocked);
 
                   const immutableStatus =
-                    status === "HOLIDAY" || status === "LEAVE";
+                    status === "HOLIDAY" ||
+                    status === "LEAVE" ||
+                    status === "HALF_DAY";
 
                   const actionDisabled =
                     rowLocked || attendanceLocked || immutableStatus;
@@ -864,7 +892,8 @@ export default function AttendanceManagement() {
                               className="animate-spin mx-auto"
                             />
                           ) : (
-                            getStatusShortName(status)
+                            // getStatusShortName(status)
+                            getStatusShortName(status, isSunday)
                           )}
                         </button>
                       </td>
@@ -920,14 +949,14 @@ export default function AttendanceManagement() {
                       </td>
 
                       <td className="p-4 whitespace-nowrap">
-                        {employee.leaveHoliday ? (
-                          <span
-                            className={`px-3 py-1.5 rounded-lg text-sm ${
-                              status === "HOLIDAY"
-                                ? "bg-purple-500/15 text-purple-400"
-                                : "bg-yellow-500/15 text-yellow-400"
-                            }`}
-                          >
+                        {status === "HOLIDAY" ? (
+                          <span className="px-3 py-1.5 rounded-lg text-sm bg-purple-500/15 text-purple-400">
+                            {isSunday
+                              ? "Sunday"
+                              : employee.leaveHoliday || "Holiday"}
+                          </span>
+                        ) : employee.leaveHoliday ? (
+                          <span className="px-3 py-1.5 rounded-lg text-sm bg-yellow-500/15 text-yellow-400">
                             {employee.leaveHoliday}
                           </span>
                         ) : (
