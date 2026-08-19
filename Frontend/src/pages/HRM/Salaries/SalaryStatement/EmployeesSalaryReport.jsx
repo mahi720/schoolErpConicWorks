@@ -267,6 +267,7 @@ const EmployeesSalaryReport = () => {
       year,
       reportType,
     });
+    navigate("/hrm/salaries/salary-multi-component-report");
   };
 
   const handleDetailedReport = () => {

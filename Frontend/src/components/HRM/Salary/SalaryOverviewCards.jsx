@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function SalaryOverviewCards() {
+  const navigate = useNavigate();
+
   const cards = [
     {
       title: "Attendance",
@@ -9,6 +12,7 @@ export default function SalaryOverviewCards() {
       line2: "Total Deduction Days: 0",
       bar: "bg-indigo-500",
       width: "25%",
+      path: "/hrm/attendance-management/reconciliation-report-sheet",
     },
     {
       title: "Leave",
@@ -17,6 +21,7 @@ export default function SalaryOverviewCards() {
       line2: "Declined Leaves: 0",
       bar: "bg-yellow-500",
       width: "75%",
+      path: "/hrm/employe-dashboard/leave-requests",
     },
     {
       title: "Overtime",
@@ -25,6 +30,7 @@ export default function SalaryOverviewCards() {
       line2: "Amt/Hour: ₹681.63",
       bar: "bg-red-500",
       width: "50%",
+      path: "/hrm/employe-dashboard/overtime-requests",
     },
     {
       title: "Advance",
@@ -33,6 +39,7 @@ export default function SalaryOverviewCards() {
       line2: "Approved Requests: 0",
       bar: "bg-cyan-500",
       width: "20%",
+      path: "/hrm/employe-dashboard/advance-requests",
     },
     {
       title: "Loan",
@@ -42,6 +49,7 @@ export default function SalaryOverviewCards() {
       extra: "Approved Loans 0",
       bar: "bg-orange-500",
       width: "50%",
+      path: "/hrm/employe-dashboard/loan-requests",
     },
     {
       title: "Salary To Be Claimed For (Days) :",
@@ -53,14 +61,27 @@ export default function SalaryOverviewCards() {
     },
   ];
 
+  const handleCardClick = (item) => {
+    if (!item.path) {
+      return;
+    }
+
+    navigate(item.path);
+  };
+
   return (
-    <div className="grid grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {cards.map((item, index) => (
         <div
           key={index}
-          className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-5"
+          onClick={() => handleCardClick(item)}
+          className={`bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-5 transition-all ${
+            item.path
+              ? "cursor-pointer hover:border-indigo-500 hover:bg-gray-800/80"
+              : ""
+          }`}
         >
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-4">
             <h2 className="text-xl text-white">{item.title}</h2>
 
             <h3 className="text-2xl text-white">{item.value}</h3>
@@ -69,7 +90,7 @@ export default function SalaryOverviewCards() {
           <div className="space-y-2">
             <p className="text-gray-400">{item.line1}</p>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
               <p className="text-gray-400">{item.line2}</p>
 
               {item.extra && (
@@ -82,7 +103,7 @@ export default function SalaryOverviewCards() {
             <div
               style={{ width: item.width }}
               className={`${item.bar} h-full rounded-full`}
-            ></div>
+            />
           </div>
         </div>
       ))}

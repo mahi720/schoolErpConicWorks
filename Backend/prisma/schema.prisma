@@ -141,6 +141,12 @@ model School {
   hrmEmployeeAdvanceInstallments   HrmEmployeeAdvanceInstallment[]
   hrmEmployeeLoans                 HrmEmployeeLoan[]
   hrmEmployeeLoanInstallments      HrmEmployeeLoanInstallment[]
+  hrmEmployeePayrollLogs           HrmEmployeePayrollLog[]
+  hrmPayrollRuns                   HrmPayrollRun[]
+  hrmEmployeePayrolls              HrmEmployeePayroll[]
+  hrmEmployeePayrollItems          HrmEmployeePayrollItem[]
+  hrmEmployeePayrollAttendances    HrmEmployeePayrollAttendance[]
+  hrmEmployeePayrollLeaves         HrmEmployeePayrollLeave[]
 
   @@map("schools")
 }
@@ -217,34 +223,41 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  submittedPeriodicTestMarks     PeriodicTestMarkSubmission[]  @relation("PeriodicTestMarkSubmittedBy")
-  lockedPeriodicTestMarks        PeriodicTestMarkSubmission[]  @relation("PeriodicTestMarkLockedBy")
-  periodicTestMarkAuditLogs      PeriodicTestMarkAuditLog[]    @relation("PeriodicTestMarkAuditPerformedBy")
-  submittedTermExamMarks         TermExamMarkSubmission[]      @relation("TermExamMarkSubmittedBy")
-  lockedTermExamMarks            TermExamMarkSubmission[]      @relation("TermExamMarkLockedBy")
-  termExamMarkAuditLogs          TermExamMarkAuditLog[]        @relation("TermExamMarkAuditPerformedBy")
-  submittedTopicWiseGrades       TopicWiseGradeSubmission[]    @relation("TopicWiseGradeSubmittedBy")
-  lockedTopicWiseGrades          TopicWiseGradeSubmission[]    @relation("TopicWiseGradeLockedBy")
-  topicWiseGradeAuditLogs        TopicWiseGradeAuditLog[]      @relation("TopicWiseGradeAuditPerformedBy")
-  submittedCoScholasticGrades    CoScholasticGradeSubmission[] @relation("CoScholasticGradeSubmittedBy")
-  lockedCoScholasticGrades       CoScholasticGradeSubmission[] @relation("CoScholasticGradeLockedBy")
-  coScholasticGradeAuditLogs     CoScholasticGradeAuditLog[]   @relation("CoScholasticGradeAuditPerformedBy")
+  submittedPeriodicTestMarks     PeriodicTestMarkSubmission[]   @relation("PeriodicTestMarkSubmittedBy")
+  lockedPeriodicTestMarks        PeriodicTestMarkSubmission[]   @relation("PeriodicTestMarkLockedBy")
+  periodicTestMarkAuditLogs      PeriodicTestMarkAuditLog[]     @relation("PeriodicTestMarkAuditPerformedBy")
+  submittedTermExamMarks         TermExamMarkSubmission[]       @relation("TermExamMarkSubmittedBy")
+  lockedTermExamMarks            TermExamMarkSubmission[]       @relation("TermExamMarkLockedBy")
+  termExamMarkAuditLogs          TermExamMarkAuditLog[]         @relation("TermExamMarkAuditPerformedBy")
+  submittedTopicWiseGrades       TopicWiseGradeSubmission[]     @relation("TopicWiseGradeSubmittedBy")
+  lockedTopicWiseGrades          TopicWiseGradeSubmission[]     @relation("TopicWiseGradeLockedBy")
+  topicWiseGradeAuditLogs        TopicWiseGradeAuditLog[]       @relation("TopicWiseGradeAuditPerformedBy")
+  submittedCoScholasticGrades    CoScholasticGradeSubmission[]  @relation("CoScholasticGradeSubmittedBy")
+  lockedCoScholasticGrades       CoScholasticGradeSubmission[]  @relation("CoScholasticGradeLockedBy")
+  coScholasticGradeAuditLogs     CoScholasticGradeAuditLog[]    @relation("CoScholasticGradeAuditPerformedBy")
   hrmEmployee                    HrmEmployee?
-  markHrmAttendacne              HrmEmployeeAttendance[]       @relation("HrmAttendanceMarkedBy")
-  lockHrmAttendance              HrmEmployeeAttendance[]       @relation("HrmAttendanceLockedBy")
+  markHrmAttendacne              HrmEmployeeAttendance[]        @relation("HrmAttendanceMarkedBy")
+  lockHrmAttendance              HrmEmployeeAttendance[]        @relation("HrmAttendanceLockedBy")
   hrmEmployeeAttendanceLogs      HrmEmployeeAttendanceLog[]
-  hrmEmployeeLeaveCancelled      HrmEmployeeLeaveRequest[]     @relation("HrmEmployeeLeaveCancelledBy")
-  hrmEmployeeLeaveRejected       HrmEmployeeLeaveRequest[]     @relation("HrmEmployeeLeaveRejectedBy")
-  hrmEmployeeLeaveApproved       HrmEmployeeLeaveRequest[]     @relation("HrmEmployeeLeaveApprovedBy")
+  hrmEmployeeLeaveCancelled      HrmEmployeeLeaveRequest[]      @relation("HrmEmployeeLeaveCancelledBy")
+  hrmEmployeeLeaveRejected       HrmEmployeeLeaveRequest[]      @relation("HrmEmployeeLeaveRejectedBy")
+  hrmEmployeeLeaveApproved       HrmEmployeeLeaveRequest[]      @relation("HrmEmployeeLeaveApprovedBy")
   hrmEmployeeLeaveRequestLogs    HrmEmployeeLeaveRequestLog[]
-  hrmOvertimeApproved            HrmOvertimeRequest[]          @relation("HrmOvertimeApprovedBy")
-  hrmOvertimeRejected            HrmOvertimeRequest[]          @relation("HrmOvertimeRejectedBy")
-  hrmEmployeeAdvanceApprovedBy   HrmEmployeeAdvance[]          @relation("HrmEmployeeAdvanceApprovedBy")
-  hrmEmployeeAdvanceRejectedBy   HrmEmployeeAdvance[]          @relation("HrmEmployeeAdvanceRejectedBy")
-  hrmEmployeeAdvanceForeclosedBy HrmEmployeeAdvance[]          @relation("HrmEmployeeAdvanceForeclosedBy")
-  hrmEmployeeLoanRejectedBy      HrmEmployeeLoan[]             @relation("HrmEmployeeLoanRejectedBy")
-  hrmEmployeeLoanApprovedBy      HrmEmployeeLoan[]             @relation("HrmEmployeeLoanApprovedBy")
-  hrmEmployeeLoanForeclosedBy    HrmEmployeeLoan[]             @relation("HrmEmployeeLoanForeclosedBy")
+  hrmOvertimeApproved            HrmOvertimeRequest[]           @relation("HrmOvertimeApprovedBy")
+  hrmOvertimeRejected            HrmOvertimeRequest[]           @relation("HrmOvertimeRejectedBy")
+  hrmEmployeeAdvanceApprovedBy   HrmEmployeeAdvance[]           @relation("HrmEmployeeAdvanceApprovedBy")
+  hrmEmployeeAdvanceRejectedBy   HrmEmployeeAdvance[]           @relation("HrmEmployeeAdvanceRejectedBy")
+  hrmEmployeeAdvanceForeclosedBy HrmEmployeeAdvance[]           @relation("HrmEmployeeAdvanceForeclosedBy")
+  hrmEmployeeLoanRejectedBy      HrmEmployeeLoan[]              @relation("HrmEmployeeLoanRejectedBy")
+  hrmEmployeeLoanApprovedBy      HrmEmployeeLoan[]              @relation("HrmEmployeeLoanApprovedBy")
+  hrmEmployeeLoanForeclosedBy    HrmEmployeeLoan[]              @relation("HrmEmployeeLoanForeclosedBy")
+  hrmPayrollRunPaidBy            HrmPayrollRun[]                @relation("HrmPayrollRunPaidBy")
+  hrmPayrollRunLockedBy          HrmPayrollRun[]                @relation("HrmPayrollRunLockedBy")
+  hrmPayrollRunGeneratedBy       HrmPayrollRun[]                @relation("HrmPayrollRunGeneratedBy")
+  hrmEmployeePayrollLockedBy     HrmEmployeePayroll[]           @relation("HrmEmployeePayrollLockedBy")
+  hrmEmployeePayrollSavedBy      HrmEmployeePayroll[]           @relation("HrmEmployeePayrollSavedBy")
+  hrmEmployeePayrollLogActor     HrmEmployeePayrollLog[]        @relation("HrmEmployeePayrollLogActor")
+  hrmPayrollAttendanceChangedBy  HrmEmployeePayrollAttendance[] @relation("HrmPayrollAttendanceChangedBy")
 
   @@unique([email, schoolSlug])
   @@map("users")
@@ -3289,6 +3302,8 @@ model HrmEmployee {
   hrmEmployeeAdvanceInstallments HrmEmployeeAdvanceInstallment[]
   hrmEmployeeLoans               HrmEmployeeLoan[]               @relation("HrmEmployeeLoans")
   hrmEmployeeLoanInstallments    HrmEmployeeLoanInstallment[]    @relation("HrmEmployeeLoanInstallments")
+  hrmEmployeePayrollLogs         HrmEmployeePayrollLog[]
+  hrmEmployeePayrolls            HrmEmployeePayroll[]
 
   @@index([schoolSlug])
   @@index([userSlug])
@@ -3394,6 +3409,7 @@ model HrmEmployeeSalaryStructure {
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
   hrmEmployeeSalaryIncrements HrmEmployeeSalaryIncrement[]
+  hrmEmployeePayrolls         HrmEmployeePayroll[]
 
   @@index([schoolSlug])
   @@index([employeeSlug])
@@ -3439,10 +3455,11 @@ model HrmEmployeeSalaryStructureItem {
   isActive  Boolean   @default(true)
   deletedAt DateTime?
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  hrmPayBand   HrmPayBand? @relation(fields: [hrmPayBandId], references: [id])
-  hrmPayBandId Int?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  hrmPayBand              HrmPayBand?              @relation(fields: [hrmPayBandId], references: [id])
+  hrmPayBandId            Int?
+  hrmEmployeePayrollItems HrmEmployeePayrollItem[]
 
   @@index([schoolSlug])
   @@index([employeeSalaryStructureSlug])
@@ -3472,6 +3489,8 @@ model HrmEmployeeSalaryIncrement {
   incrementType  HrmSalaryCalculationType
   incrementValue Decimal                  @db.Decimal(12, 2)
 
+  effectiveFrom DateTime? @db.Date
+
   previousBasicSalary Decimal @db.Decimal(12, 2)
   incrementAmount     Decimal @db.Decimal(12, 2)
   newBasicSalary      Decimal @db.Decimal(12, 2)
@@ -3486,10 +3505,54 @@ model HrmEmployeeSalaryIncrement {
   updatedAt DateTime @updatedAt
 
   @@index([schoolSlug])
+  @@index([effectiveFrom])
   @@index([employeeSlug])
   @@index([employeeSalaryStructureSlug])
   @@index([createdAt])
   @@map("hrm_employee_salary_increments")
+}
+
+model HrmEmployeePayrollLog {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  payrollRunSlug String?        @db.VarChar(50)
+  payrollRun     HrmPayrollRun? @relation(fields: [payrollRunSlug], references: [slug], onDelete: Cascade)
+
+  employeePayrollSlug String?             @db.VarChar(50)
+  employeePayroll     HrmEmployeePayroll? @relation(fields: [employeePayrollSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String?      @db.VarChar(50)
+  employee     HrmEmployee? @relation(fields: [employeeSlug], references: [slug], onDelete: SetNull)
+
+  action String @db.VarChar(50)
+
+  previousData Json?
+  newData      Json?
+
+  actorSlug String? @db.VarChar(50)
+  actor     User?   @relation("HrmEmployeePayrollLogActor", fields: [actorSlug], references: [slug], onDelete: SetNull)
+
+  actorName  String? @db.VarChar(150)
+  actorEmail String? @db.VarChar(150)
+
+  ipAddress String? @db.VarChar(100)
+  userAgent String? @db.VarChar(500)
+
+  remarks String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolSlug])
+  @@index([payrollRunSlug])
+  @@index([employeePayrollSlug])
+  @@index([employeeSlug])
+  @@index([action])
+  @@index([createdAt])
+  @@map("hrm_employee_payroll_logs")
 }
 
 // leave request
@@ -3567,8 +3630,9 @@ model HrmEmployeeLeaveRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  logs                   HrmEmployeeLeaveRequestLog[]
-  hrmEmployeeAttendances HrmEmployeeAttendance[]
+  logs                     HrmEmployeeLeaveRequestLog[]
+  hrmEmployeeAttendances   HrmEmployeeAttendance[]
+  hrmEmployeePayrollLeaves HrmEmployeePayrollLeave[]
 
   @@index([schoolSlug])
   @@index([employeeSlug])
@@ -3658,6 +3722,9 @@ model HrmOvertimeRequest {
   rejectedBySlug String? @db.VarChar(50)
   rejectedBy     User?   @relation("HrmOvertimeRejectedBy", fields: [rejectedBySlug], references: [slug], onDelete: SetNull)
 
+  payrollSlug String?             @db.VarChar(50)
+  payroll     HrmEmployeePayroll? @relation(fields: [payrollSlug], references: [slug], onDelete: SetNull)
+
   rejectedAt DateTime?
 
   remark String? @db.VarChar(500)
@@ -3675,6 +3742,7 @@ model HrmOvertimeRequest {
   @@index([overtimeDate])
   @@index([requestStatus])
   @@index([isActive])
+  @@index([payrollSlug])
   @@index([schoolSlug, employeeSlug, overtimeDate])
   @@map("hrm_overtime_requests")
 }
@@ -3844,7 +3912,8 @@ model HrmEmployeeAdvanceInstallment {
 
   recoveredAt DateTime?
 
-  payrollSlug String?
+  payrollSlug String?             @db.VarChar(50)
+  payroll     HrmEmployeePayroll? @relation(fields: [payrollSlug], references: [slug], onDelete: SetNull)
 
   status HrmEmployeeAdvanceInstallmentStatus @default(PENDING)
 
@@ -3855,6 +3924,7 @@ model HrmEmployeeAdvanceInstallment {
 
   @@unique([advanceSlug, installmentNo])
   @@index([schoolSlug])
+  @@index([payrollSlug])
   @@index([employeeSlug])
   @@index([dueMonth])
   @@index([status])
@@ -4034,7 +4104,8 @@ model HrmEmployeeLoanInstallment {
 
   recoveredAt DateTime?
 
-  payrollSlug String? @db.VarChar(50)
+  payrollSlug String?             @db.VarChar(50)
+  payroll     HrmEmployeePayroll? @relation(fields: [payrollSlug], references: [slug], onDelete: SetNull)
 
   status HrmEmployeeLoanInstallmentStatus @default(PENDING)
 
@@ -4046,6 +4117,7 @@ model HrmEmployeeLoanInstallment {
   @@unique([loanSlug, installmentNo])
   @@index([schoolSlug])
   @@index([loanSlug])
+  @@index([payrollSlug])
   @@index([employeeSlug])
   @@index([dueMonth])
   @@index([status])
@@ -4221,6 +4293,368 @@ model HrmEmployeeAttendanceLog {
   @@index([actorSlug])
   @@index([createdAt])
   @@map("hrm_employee_attendance_logs")
+}
+
+// Hrm Employee final Salary
+
+enum HrmPayrollRunStatus {
+  DRAFT
+  GENERATED
+  LOCKED
+  PAID
+  CANCELLED
+}
+
+enum HrmEmployeePayrollStatus {
+  DRAFT
+  SAVED
+  LOCKED
+  PAID
+  CANCELLED
+}
+
+enum HrmPayrollItemSource {
+  SALARY_STRUCTURE
+  OVERTIME
+  LEAVE
+  ADVANCE
+  LOAN
+  DRF
+  ATTENDANCE
+  MANUAL
+}
+
+model HrmPayrollRun {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  payrollYear  Int
+  payrollMonth Int
+
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+
+  status HrmPayrollRunStatus @default(DRAFT)
+
+  totalEmployees  Int     @default(0)
+  totalEarnings   Decimal @default(0) @db.Decimal(14, 2)
+  totalDeductions Decimal @default(0) @db.Decimal(14, 2)
+  totalNetSalary  Decimal @default(0) @db.Decimal(14, 2)
+
+  generatedBySlug String? @db.VarChar(50)
+  generatedBy     User?   @relation("HrmPayrollRunGeneratedBy", fields: [generatedBySlug], references: [slug], onDelete: SetNull)
+
+  generatedAt DateTime?
+
+  lockedBySlug String? @db.VarChar(50)
+  lockedBy     User?   @relation("HrmPayrollRunLockedBy", fields: [lockedBySlug], references: [slug], onDelete: SetNull)
+
+  lockedAt DateTime?
+
+  paidBySlug String? @db.VarChar(50)
+  paidBy     User?   @relation("HrmPayrollRunPaidBy", fields: [paidBySlug], references: [slug], onDelete: SetNull)
+
+  paidAt DateTime?
+
+  remarks String? @db.VarChar(500)
+
+  statusText String    @default("active") @db.VarChar(20)
+  isActive   Boolean   @default(true)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employeePayrolls HrmEmployeePayroll[]
+  logs             HrmEmployeePayrollLog[]
+
+  @@unique([schoolSlug, payrollYear, payrollMonth])
+  @@index([schoolSlug])
+  @@index([payrollYear, payrollMonth])
+  @@index([status])
+  @@index([isActive])
+  @@map("hrm_payroll_runs")
+}
+
+model HrmEmployeePayroll {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  payrollRunSlug String        @db.VarChar(50)
+  payrollRun     HrmPayrollRun @relation(fields: [payrollRunSlug], references: [slug], onDelete: Cascade)
+
+  employeeSlug String      @db.VarChar(50)
+  employee     HrmEmployee @relation(fields: [employeeSlug], references: [slug], onDelete: Restrict)
+
+  employeeSalaryStructureSlug String?                     @db.VarChar(50)
+  employeeSalaryStructure     HrmEmployeeSalaryStructure? @relation(fields: [employeeSalaryStructureSlug], references: [slug], onDelete: SetNull)
+
+  payrollYear  Int
+  payrollMonth Int
+
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+
+  employeeNameSnapshot    String  @db.VarChar(150)
+  employeeIdSnapshot      String? @db.VarChar(50)
+  employeeCodeSnapshot    String? @db.VarChar(50)
+  departmentSlugSnapshot  String? @db.VarChar(50)
+  departmentNameSnapshot  String? @db.VarChar(100)
+  designationSlugSnapshot String? @db.VarChar(50)
+  designationNameSnapshot String? @db.VarChar(100)
+
+  natureOfAppointmentSnapshot HrmNatureOfAppointment?
+
+  joiningDateSnapshot DateTime? @db.Date
+
+  payBandSlugSnapshot String? @db.VarChar(50)
+  payBandNameSnapshot String? @db.VarChar(100)
+
+  bankNameSnapshot          String? @db.VarChar(150)
+  bankAccountNumberSnapshot String? @db.VarChar(50)
+  ifscCodeSnapshot          String? @db.VarChar(20)
+  panNumberSnapshot         String? @db.VarChar(20)
+  uanNumberSnapshot         String? @db.VarChar(30)
+
+  basicSalarySnapshot Decimal @default(0) @db.Decimal(12, 2)
+
+  structureGrossEarningsSnapshot   Decimal @default(0) @db.Decimal(12, 2)
+  structureTotalDeductionsSnapshot Decimal @default(0) @db.Decimal(12, 2)
+  structureNetSalarySnapshot       Decimal @default(0) @db.Decimal(12, 2)
+
+  salaryDays        Decimal @default(0) @db.Decimal(6, 2)
+  salaryClaimedDays Decimal @default(0) @db.Decimal(6, 2)
+
+  attendanceDeduction Decimal @default(0) @db.Decimal(12, 2)
+  leaveDeduction      Decimal @default(0) @db.Decimal(12, 2)
+
+  overtimeSalaryBasis  Decimal @default(0) @db.Decimal(12, 2)
+  overtimeSalaryPerDay Decimal @default(0) @db.Decimal(12, 4)
+  overtimeHoursPerDay  Decimal @default(0) @db.Decimal(6, 2)
+  overtimeRatePerHour  Decimal @default(0) @db.Decimal(12, 4)
+
+  overtimeHours   Decimal @default(0) @db.Decimal(8, 2)
+  overtimeEarning Decimal @default(0) @db.Decimal(12, 2)
+
+  advanceDeduction Decimal @default(0) @db.Decimal(12, 2)
+  loanDeduction    Decimal @default(0) @db.Decimal(12, 2)
+  drfDeduction     Decimal @default(0) @db.Decimal(12, 2)
+
+  manualEarning   Decimal @default(0) @db.Decimal(12, 2)
+  manualDeduction Decimal @default(0) @db.Decimal(12, 2)
+
+  grossEarnings   Decimal @default(0) @db.Decimal(12, 2)
+  totalDeductions Decimal @default(0) @db.Decimal(12, 2)
+  netSalary       Decimal @default(0) @db.Decimal(12, 2)
+
+  status HrmEmployeePayrollStatus @default(DRAFT)
+
+  isSaved Boolean @default(false)
+
+  savedBySlug String? @db.VarChar(50)
+  savedBy     User?   @relation("HrmEmployeePayrollSavedBy", fields: [savedBySlug], references: [slug], onDelete: SetNull)
+
+  savedAt DateTime?
+
+  isLocked Boolean @default(false)
+
+  lockedBySlug String? @db.VarChar(50)
+  lockedBy     User?   @relation("HrmEmployeePayrollLockedBy", fields: [lockedBySlug], references: [slug], onDelete: SetNull)
+
+  lockedAt DateTime?
+
+  isPaid Boolean @default(false)
+
+  paidAt DateTime?
+
+  remarks String? @db.VarChar(500)
+
+  statusText String    @default("active") @db.VarChar(20)
+  isActive   Boolean   @default(true)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items               HrmEmployeePayrollItem[]
+  attendance          HrmEmployeePayrollAttendance?
+  leaves              HrmEmployeePayrollLeave[]
+  logs                HrmEmployeePayrollLog[]
+  overtimeRequests    HrmOvertimeRequest[]
+  advanceInstallments HrmEmployeeAdvanceInstallment[]
+  loanInstallments    HrmEmployeeLoanInstallment[]
+
+  @@unique([payrollRunSlug, employeeSlug])
+  @@index([schoolSlug])
+  @@index([employeeSlug])
+  @@index([employeeSalaryStructureSlug])
+  @@index([payrollYear, payrollMonth])
+  @@index([status])
+  @@index([isSaved])
+  @@index([isLocked])
+  @@index([isPaid])
+  @@index([isActive])
+  @@map("hrm_employee_payrolls")
+}
+
+model HrmEmployeePayrollItem {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeePayrollSlug String             @db.VarChar(50)
+  employeePayroll     HrmEmployeePayroll @relation(fields: [employeePayrollSlug], references: [slug], onDelete: Cascade)
+
+  salaryStructureItemSlug String?                         @db.VarChar(50)
+  salaryStructureItem     HrmEmployeeSalaryStructureItem? @relation(fields: [salaryStructureItemSlug], references: [slug], onDelete: SetNull)
+
+  componentType HrmSalaryComponentType
+
+  source HrmPayrollItemSource
+
+  componentName String @db.VarChar(150)
+
+  earningTypeSlug String?         @db.VarChar(50)
+  earningType     HrmEarningType? @relation(fields: [earningTypeSlug], references: [slug], onDelete: SetNull)
+
+  deductionTypeSlug String?           @db.VarChar(50)
+  deductionType     HrmDeductionType? @relation(fields: [deductionTypeSlug], references: [slug], onDelete: SetNull)
+
+  calculationType HrmSalaryCalculationType?
+
+  calculationBase HrmSalaryCalculationBase?
+
+  value Decimal? @db.Decimal(12, 2)
+
+  amount Decimal @default(0) @db.Decimal(12, 2)
+
+  sourceReferenceSlug String? @db.VarChar(50)
+
+  displayOrder Int @default(0)
+
+  isSystemGenerated Boolean @default(true)
+  isEditable        Boolean @default(false)
+
+  remarks String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@index([employeePayrollSlug])
+  @@index([salaryStructureItemSlug])
+  @@index([componentType])
+  @@index([source])
+  @@index([sourceReferenceSlug])
+  @@index([displayOrder])
+  @@map("hrm_employee_payroll_items")
+}
+
+model HrmEmployeePayrollAttendance {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeePayrollSlug String             @unique @db.VarChar(50)
+  employeePayroll     HrmEmployeePayroll @relation(fields: [employeePayrollSlug], references: [slug], onDelete: Cascade)
+
+  calendarDays Decimal @default(0) @db.Decimal(6, 2)
+
+  workingDays Decimal @default(0) @db.Decimal(6, 2)
+
+  presentDays Decimal @default(0) @db.Decimal(6, 2)
+  absentDays  Decimal @default(0) @db.Decimal(6, 2)
+
+  holidayDays Decimal @default(0) @db.Decimal(6, 2)
+  sundayDays  Decimal @default(0) @db.Decimal(6, 2)
+
+  fullLeaveDays Decimal @default(0) @db.Decimal(6, 2)
+  halfLeaveDays Decimal @default(0) @db.Decimal(6, 2)
+
+  paidLeaveDays   Decimal @default(0) @db.Decimal(6, 2)
+  unpaidLeaveDays Decimal @default(0) @db.Decimal(6, 2)
+
+  notMarkedDays Decimal @default(0) @db.Decimal(6, 2)
+
+  deductionDays Decimal @default(0) @db.Decimal(6, 2)
+
+  calculatedSalaryDays Decimal @default(0) @db.Decimal(6, 2)
+  claimedSalaryDays    Decimal @default(0) @db.Decimal(6, 2)
+
+  salaryPerDay Decimal @default(0) @db.Decimal(12, 4)
+
+  deductionAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  salaryDaysManuallyChanged Boolean @default(false)
+
+  changedBySlug String? @db.VarChar(50)
+  changedBy     User?   @relation("HrmPayrollAttendanceChangedBy", fields: [changedBySlug], references: [slug], onDelete: SetNull)
+
+  changedAt DateTime?
+
+  changeRemark String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolSlug])
+  @@map("hrm_employee_payroll_attendances")
+}
+
+model HrmEmployeePayrollLeave {
+  id   Int    @id @default(autoincrement())
+  slug String @unique @db.VarChar(50)
+
+  schoolSlug String @db.VarChar(50)
+  school     School @relation(fields: [schoolSlug], references: [slug], onDelete: Cascade)
+
+  employeePayrollSlug String             @db.VarChar(50)
+  employeePayroll     HrmEmployeePayroll @relation(fields: [employeePayrollSlug], references: [slug], onDelete: Cascade)
+
+  leaveRequestSlug String                  @db.VarChar(50)
+  leaveRequest     HrmEmployeeLeaveRequest @relation(fields: [leaveRequestSlug], references: [slug], onDelete: Restrict)
+
+  leaveTypeSlug String       @db.VarChar(50)
+  leaveType     HrmLeaveType @relation(fields: [leaveTypeSlug], references: [slug], onDelete: Restrict)
+
+  leaveTypeNameSnapshot String @db.VarChar(100)
+
+  leaveCategory HrmEmployeeLeaveCategory
+
+  payType HrmEmployeeLeavePayType
+
+  fromDate DateTime  @db.Date
+  toDate   DateTime? @db.Date
+
+  totalDays Decimal @default(0) @db.Decimal(6, 2)
+
+  numberOfDaysPaid Decimal @default(0) @db.Decimal(6, 2)
+
+  deductionDays Decimal @default(0) @db.Decimal(6, 2)
+
+  salaryPerDay Decimal @default(0) @db.Decimal(12, 4)
+
+  deductionAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeePayrollSlug, leaveRequestSlug])
+  @@index([schoolSlug])
+  @@index([leaveRequestSlug])
+  @@index([leaveTypeSlug])
+  @@index([payType])
+  @@map("hrm_employee_payroll_leaves")
 }
 
 // HRM Holiday
@@ -4643,6 +5077,7 @@ model HrmEarningType {
 
   payBandStructures               HrmPayBandStructure[]
   hrmEmployeeSalaryStructureItems HrmEmployeeSalaryStructureItem[]
+  hrmEmployeePayrollItems         HrmEmployeePayrollItem[]
 
   @@unique([schoolSlug, earningType])
   @@index([schoolSlug])
@@ -4672,6 +5107,7 @@ model HrmDeductionType {
 
   payBandStructures               HrmPayBandStructure[]
   hrmEmployeeSalaryStructureItems HrmEmployeeSalaryStructureItem[]
+  hrmEmployeePayrollItems         HrmEmployeePayrollItem[]
 
   @@unique([schoolSlug, deductionType])
   @@index([schoolSlug])
@@ -4858,6 +5294,7 @@ model HrmLeaveType {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   hrmEmployeeLeaveRequests HrmEmployeeLeaveRequest[]
+  hrmEmployeePayrollLeaves HrmEmployeePayrollLeave[]
 
   @@unique([schoolSlug, leaveType])
   @@index([schoolSlug])

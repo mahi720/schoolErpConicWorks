@@ -131,6 +131,11 @@ import CreateMultipleEmployeesLeave from "./pages/HRM/Dashboard/Requests/leaveRe
 import BankStatement from "./pages/HRM/Salaries/BankStatement/bankStatement";
 import EmployeesSalaryReport from "./pages/HRM/Salaries/SalaryStatement/EmployeesSalaryReport";
 import EmployeesSalaryComponentReport from "./pages/HRM/Salaries/EmployeesSalaryComponentReport/employeesSalaryComponentReport";
+import EmployeesSalaryMultiComponentReport from "./pages/HRM/Salaries/EmployeesSalaryComponentReport/EmployeesSalaryMultiComponentReport";
+import EmployeesLeaveBalance from "./pages/HRM/Salaries/EmployeesLeaveBalance/employeesLeaveBalance";
+import EmployeesLeaveBalanceDetailed from "./pages/HRM/Salaries/EmployeesLeaveBalance/employeesLeaveBalanceDetailed";
+import EmployeesAttendanceDetails from "./pages/HRM/Salaries/EmployeesAttendanceDetails/employeesAttendanceDetails";
+import EmployeesAttendanceBriefReport from "./pages/HRM/Salaries/EmployeesAttendanceDetails/employeesAttendanceBriefReport";
 
 function App() {
   return (
@@ -293,6 +298,7 @@ function App() {
                         <Route path="/exam/reports" element={<Reports />} /> */}
 
                         {/* HRM Routes */}
+
                         <Route
                           path="/hrm/employe-dashboard"
                           element={<EmployeeDashboard />}
@@ -384,6 +390,26 @@ function App() {
                         <Route
                           path="/hrm/salaries/salary-component-report"
                           element={<EmployeesSalaryComponentReport />}
+                        />
+                        <Route
+                          path="/hrm/salaries/salary-multi-component-report"
+                          element={<EmployeesSalaryMultiComponentReport />}
+                        />
+                        <Route
+                          path="/hrm/salaries/employee-leave-balance"
+                          element={<EmployeesLeaveBalance />}
+                        />
+                        <Route
+                          path="/hrm/salaries/employee-detailed-leave-balance"
+                          element={<EmployeesLeaveBalanceDetailed />}
+                        />
+                        <Route
+                          path="/hrm/salaries/attendance-details"
+                          element={<EmployeesAttendanceDetails />}
+                        />
+                        <Route
+                          path="/hrm/salaries/attendance-brief-report"
+                          element={<EmployeesAttendanceBriefReport />}
                         />
 
                         <Route

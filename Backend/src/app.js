@@ -44,6 +44,7 @@ import overtimeRequestRoutes from "./routes/HRM/request/overtimeRequest/overtime
 import advancePolicyRoutes from "./routes/hrm/setting/advancePolicy/advancePolicy.routes.js";
 import employeeAdvanceRoutes from "./routes/hrm/request/employeeAdvance/employeeAdvance.routes.js";
 import employeeLoanRoutes from "./routes/hrm/request/loanRequest/employeeLoan.routes.js";
+import employeePayrollRoutes from "./routes/HRM/salary/employeePayroll.routes.js";
 
 const app = express();
 
@@ -135,6 +136,10 @@ app.use("/api/hrm/employee-leave-requests", employeeLeaveRequestRoutes);
 app.use("/api/hrm/overtime-requests", overtimeRequestRoutes);
 app.use("/api/hrm/advance-requests", employeeAdvanceRoutes);
 app.use("/api/hrm/loan-requests", employeeLoanRoutes);
+app.use(
+    "/api/hrm/employee-payrolls",
+    employeePayrollRoutes,
+);
 
 app.get("/", (req, res) => {
     res.send("School ERP Backend Running");
